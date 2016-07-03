@@ -23,3 +23,6 @@ def page_not_found(e):
 def application_error(e):
     """Return a custom 500 error."""
     return 'Sorry, unexpected error: {}'.format(e), 500
+
+if __name__ == '__main__':
+	app.run(host='127.0.0.1', port=8080, debug=True)
