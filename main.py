@@ -1,18 +1,23 @@
-"""`main` is the top level module for your Flask application."""
-
-# Import the Flask Framework
-from flask import Flask, render_template
+import json
+from flask import Flask, render_template, request
 app = Flask(__name__)
-# Note: We don't need to call run() since our application is embedded within
-# the App Engine WSGI application server.
-print app.root_path
+
 
 @app.route('/')
 def index():
 	return render_template('index.html',content="hello world!")
-#def hello():
-#    """Return a friendly HTTP greeting."""
-#    return 'Hello World!'
+
+@app.route('/crawl', methods=['POST'])
+def crawl():
+    startingURL = request.form.get('startingURL')
+    recursionLimit = request.form.get('recursionLimit')
+    searchType = request.form.get('searchType')
+    
+    print startingURL
+    print recursionLimit
+    print searchType
+
+    return json.dumps({'status': 'Ok'})
 
 
 @app.errorhandler(404)

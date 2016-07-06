@@ -23,7 +23,7 @@
 					</select>
 				</p>
 			</form>
-			<button onclick="submitCrawl()">Crawl!</button>
+			<button id="submit-crawl">Crawl!</button>
 		</p>
 	</body>
 </html>
@@ -34,7 +34,18 @@
 		var recursionLimit = document.getElementById("recursion-limit").value;
 		var searchElement = document.getElementById("search-type");
 		var searchType = searchElement.options[searchElement.selectedIndex].value;
-		
-		console.log(startingURL, recursionLimit, searchType);
+
+		$.ajax({
+			url: "/crawl",
+			type: "POST",
+			data: {"startingURL": startingURL,
+				   "recursionLimit": recursionLimit,
+				   "searchType": searchType},
+			success: function(result) {
+				console.log(result);
+			}
+		})
 	}
+
+	document.getElementById("submit-crawl").addEventListener("click", submitCrawl, false);
 </script>
