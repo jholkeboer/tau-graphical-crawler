@@ -1,5 +1,8 @@
-import json
 from flask import Flask, render_template, request
+import json
+import requests
+import lxml
+from lxml import html
 app = Flask(__name__)
 
 
@@ -16,6 +19,14 @@ def crawl():
     print startingURL
     print recursionLimit
     print searchType
+
+    # see here: http://shallowsky.com/blog/programming/parsing-html-python.html
+    # res = requests.get(startingURL)
+    # tree = lxml.html.fromstring(res.content)
+
+    # for node in tree.iter():
+    #     if node.tag == 'a':
+    #         print node.get('href')
 
     return json.dumps({'status': 'Ok'})
 
