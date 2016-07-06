@@ -1,16 +1,18 @@
 """`main` is the top level module for your Flask application."""
 
 # Import the Flask Framework
-from flask import Flask
+from flask import Flask, render_template
 app = Flask(__name__)
 # Note: We don't need to call run() since our application is embedded within
 # the App Engine WSGI application server.
-
+print app.root_path
 
 @app.route('/')
-def hello():
-    """Return a friendly HTTP greeting."""
-    return 'Hello World!'
+def index():
+	return render_template('index.html',content="hello world!")
+#def hello():
+#    """Return a friendly HTTP greeting."""
+#    return 'Hello World!'
 
 
 @app.errorhandler(404)
