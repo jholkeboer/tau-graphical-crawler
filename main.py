@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 import json
-import requests
+from google.appengine.api import urlfetch
 import lxml
 from lxml import html
 app = Flask(__name__)
@@ -20,15 +20,18 @@ def crawl():
     print recursionLimit
     print searchType
 
-    # see here: http://shallowsky.com/blog/programming/parsing-html-python.html
-    # res = requests.get(startingURL)
-    # tree = lxml.html.fromstring(res.content)
+    # see here: http://stackoverflow.com/questions/9762685/using-the-requests-python-library-in-google-app-engine
+    res = urlfetch.fetch(startingURL)
+    tree = lxml.html.fromstring(res.content)
 
-    # for node in tree.iter():
-    #     if node.tag == 'a':
-    #         print node.get('href')
+    links = []
+    for node in tree.iter():
+        if node.tag == 'a':
+            link = node.get('href')
+            if link:
+                links.append(link)
 
-    return json.dumps({'status': 'Ok'})
+    return json.dumps({'status': 'Ok', 'links': links})
 
 
 @app.errorhandler(404)
