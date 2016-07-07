@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request
 import json
+import lxml
+from flask import Flask, render_template, request
 from google.appengine.api import urlfetch
 import lxml
 from lxml import html
@@ -28,10 +29,11 @@ def crawl():
     for node in tree.iter():
         if node.tag == 'a':
             link = node.get('href')
-            if link:
+            if link and link.startswith('http'):
+                print link
                 links.append(link)
 
-    return json.dumps({'status': 'Ok', 'links': links})
+    return json.dumps({'status': 'Ok', 'count': len(links)})
 
 
 @app.errorhandler(404)

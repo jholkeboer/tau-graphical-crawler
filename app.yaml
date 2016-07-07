@@ -30,4 +30,4 @@ handlers:
 # TODO: List any other App Engine SDK libs you may need here.
 libraries:
 - name: lxml
-  version: latest
+  version: "2.3.5"
