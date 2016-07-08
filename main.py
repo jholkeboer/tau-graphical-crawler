@@ -21,20 +21,32 @@ def getPageLinks(parentURL):
     return links
 
 def breadthFirstCrawl(startingURL, recursionLimit, currentLevel):
-    print "Level" + str(currentLevel)
-    
-    # see here: http://stackoverflow.com/questions/9762685/using-the-requests-python-library-in-google-app-engine
-    # get html tree of starting page
-    res = urlfetch.fetch(startingURL)
-    tree = lxml.html.fromstring(res.content)
-    
-    results = getPageLinks(startingURL)
+    print "Level" + str(currentLevel) + " Recursion Limit " + str(recursionLimit)
+
+    results = []
+
+    try:
+        parent_links = getPageLinks(startingURL)
+        results.extend(parent_links)
+    except:
+        pass
+
     if currentLevel < recursionLimit:
-        current_level_result = results
-        for link in current_level_result:
+        # get page html
+        try:
+            res = urlfetch.fetch(startingURL)
+        except:
+            return []
+
+        # parse html tree
+        try:
+            tree = lxml.html.fromstring(res.content)
+        except:
+            return []
+
+        # call recursively on each link
+        for link in parent_links:
             results.extend(breadthFirstCrawl(link['child'], recursionLimit, currentLevel + 1))
-    else:
-        return results
 
     return results
 
@@ -45,7 +57,7 @@ def index():
 @app.route('/crawl', methods=['POST'])
 def crawl():
     startingURL = request.form.get('startingURL')
-    recursionLimit = request.form.get('recursionLimit')
+    recursionLimit = int(request.form.get('recursionLimit'))
     searchType = request.form.get('searchType')
     
     print startingURL
@@ -60,7 +72,7 @@ def crawl():
     else:
         result = []
 
-    return json.dumps({'status': 'Ok', 'count': len(result)})
+    return json.dumps({'status': 'Ok', 'count': len(result), 'result': result})
 
 
 @app.errorhandler(404)
