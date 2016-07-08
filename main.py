@@ -50,6 +50,23 @@ def breadthFirstCrawl(startingURL, recursionLimit, currentLevel):
 
     return results
 
+# def depthFirstCrawl(startingURL, recursionLimit, currentLevel):
+#     print "Level" + str(currentLevel) + " Recursion Limit " + str(recursionLimit)
+
+#     results = []
+
+#     try:
+#         parent_links = getPageLinks(startingURL)
+#         results.extend(parent_links)
+#     except:
+#         pass
+    
+#     # if currentLevel < recursionLimit:
+#     #     for link in parent_links:
+#     #         results.extend(depthFirstCrawl(link['child'], recursionLimit, currentLevel + 1))
+
+#     return results
+
 @app.route('/')
 def index():
 	return render_template('index.html',content="hello world!")
@@ -71,6 +88,9 @@ def crawl():
     #     result = ""
     else:
         result = []
+
+    # return unique elements
+    result = set(result)
 
     return json.dumps({'status': 'Ok', 'count': len(result), 'result': result})
 
