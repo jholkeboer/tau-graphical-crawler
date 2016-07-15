@@ -1,10 +1,15 @@
 import json
+import time
+from datetime import timedelta
 import lxml
 from flask import Flask, render_template, request
 from google.appengine.api import urlfetch
 import lxml
 from lxml import html
+from sys import setrecursionlimit
 app = Flask(__name__)
+
+setrecursionlimit(100000000)
 
 def getPageLinks(parentURL):
     res = urlfetch.fetch(parentURL)
@@ -20,18 +25,22 @@ def getPageLinks(parentURL):
                 links.append(nextLink)
     return links
 
-def breadthFirstCrawl(startingURL, recursionLimit, currentLevel):
+def breadthFirstCrawl(startingURL, recursionLimit, currentLevel, start_time):
     print "Level" + str(currentLevel) + " Recursion Limit " + str(recursionLimit)
-
+    print "Elapsed time = " + str(time.time() - start_time)
     results = []
+
+    parent_links = None
 
     try:
         parent_links = getPageLinks(startingURL)
-        results.extend(parent_links)
     except:
         pass
 
-    if currentLevel < recursionLimit:
+    if currentLevel < recursionLimit and parent_links:
+        # add current page's links to results
+        results.extend(parent_links)
+
         # get page html
         try:
             res = urlfetch.fetch(startingURL)
@@ -46,7 +55,7 @@ def breadthFirstCrawl(startingURL, recursionLimit, currentLevel):
 
         # call recursively on each link
         for link in parent_links:
-            results.extend(breadthFirstCrawl(link['child'], recursionLimit, currentLevel + 1))
+            results.extend(breadthFirstCrawl(link['child'], recursionLimit, currentLevel + 1, start_time))
 
     return results
 
@@ -73,6 +82,7 @@ def index():
 
 @app.route('/crawl', methods=['POST'])
 def crawl():
+    start_time = time.time()
     startingURL = request.form.get('startingURL')
     recursionLimit = int(request.form.get('recursionLimit'))
     searchType = request.form.get('searchType')
@@ -83,7 +93,7 @@ def crawl():
 
     
     if searchType == 'bfs':
-        result = breadthFirstCrawl(startingURL, recursionLimit, 0)
+        result = breadthFirstCrawl(startingURL, recursionLimit, 0, start_time)
     # elif searchType == 'dfs':
     #     result = ""
     else:
