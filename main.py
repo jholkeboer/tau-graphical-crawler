@@ -62,19 +62,26 @@ def breadthFirstCrawl(startingURL, recursionLimit):
     start_time = time.time()
     bfs_result_array = []
 
-    # Each entry is (priority, object)
+    # Each entry is a tuple (priority, object)
     # This ensures breadth first crawling because lowest level items are crawled first
     queue = PriorityQueue()
 
+    # initialize the queue
     queue.put((0, {'parent': None, 'child': startingURL, 'level': 0}))
 
     while not queue.empty():
+        # get next item in priority queue
         next = queue.get(True, 5)[1]
         current_depth = next['level']
+
+        # get all links from queue on the current depth
         this_level = [next]
         while next['level'] == current_depth and not queue.empty():
             next = queue.get(True, 5)[1]
-            if next['level'] < current_depth:
+
+            # Only get pages in current level.
+            # If it's not in this level, put it back in the queue.
+            if next['level'] != current_depth:
                 queue.put((next['level'], next), True, 5)
             else:
                 this_level.append(next)
@@ -89,6 +96,7 @@ def breadthFirstCrawl(startingURL, recursionLimit):
                 new_thread = threading.Thread(target=extendBFSResults(link, queue, bfs_result_array))
                 crawler_jobs.append(new_thread)
 
+            # execute threads
             for thread in crawler_jobs:
                 thread.start()
             for thread in crawler_jobs:
@@ -114,6 +122,7 @@ def depthFirstCrawl(startingURL, recursionLimit):
     start_time = time.time()
     dfs_result_array = []
 
+    # initialize stack
     stack = [{'parent': None, 'child': startingURL, 'level': 0}]
 
     crawler_jobs = []
@@ -152,7 +161,6 @@ def crawl():
     search_elapsed_time = time.time() - search_start_time
 
     print str(len(result)) + " links crawled."
-    print "Total runtime: "
     printElapsedTime(search_start_time)
 
     return json.dumps({'status': 'Ok', 'count': len(result), 'result': result, 'seconds_elapsed': search_elapsed_time})
