@@ -101,17 +101,14 @@ def breadthFirstCrawl(startingURL, recursionLimit):
 #################################
 
 def extendDFSResults(link, stack, dfs_result_array):
-    lock = threading.Lock()
     links = None
     try:
         links = getPageLinks(link['child'], link['level'])
     except:
         pass
     if links:
-        lock.acquire()
         stack.extend(links)
         dfs_result_array.extend(links)
-        lock.release()
 
 def depthFirstCrawl(startingURL, recursionLimit):
     start_time = time.time()
@@ -119,31 +116,13 @@ def depthFirstCrawl(startingURL, recursionLimit):
 
     stack = [{'parent': None, 'child': startingURL, 'level': 0}]
 
+    crawler_jobs = []
     while len(stack) > 0:
         next = stack.pop()
-        current_depth = next['level']
-        this_level = [next]
-        while next['level'] == current_depth and len(stack) > 0:
-            next = stack.pop()
-            if next['level'] < current_depth:
-                stack.append(next)
-            else:
-                this_level.append(next)
-
-        if current_depth <= recursionLimit:
-            crawler_jobs = []
-            for link in this_level:
-                print "DFS Level " + str(current_depth) + " " + link['child']
-                printElapsedTime(start_time)
-
-                # create thread for each link
-                new_thread = threading.Thread(target=extendDFSResults(link, stack, dfs_result_array))
-                crawler_jobs.append(new_thread)
-            
-            for thread in crawler_jobs:
-                thread.start()
-            for thread in crawler_jobs:
-                thread.join()
+        if next['level'] <= recursionLimit:
+            print "BFS Level " + str(next['level']) + " " + next['child']
+            printElapsedTime(start_time)
+            extendDFSResults(next, stack, dfs_result_array)
 
     return dfs_result_array
 
@@ -192,60 +171,3 @@ def application_error(e):
 
 if __name__ == '__main__':
 	app.run(host='127.0.0.1', port=8080, debug=True)
-
-
-#############
-# Test pages
-# These pages have a tree structure:
-#               level0-1
-#            /             \
-#     level1-1             level1-2
-#     /      \             /        \
-# level2-1  level2-2   level2-3   level2-4
-
-# BFS should crawl in this order:
-# level0-1
-# level1-1
-# level1-2
-# level2-1
-# level2-2
-# level2-3
-# level2-4
-
-# DFS should crawl in this order:
-# level0-1
-# level1-1
-# level2-1
-# level2-2
-# level1-2
-# level2-3
-# level2-4
-
-#############
-@app.route('/test-level0-1')
-def testlevel0_1():
-    return '<a href="/test-level1-1"><a href="/test-level1-2">', 200
-
-@app.route('/test-level1-1')
-def testlevel1_1():
-    return '<a href="/test-level2-1"><a href="/test-level2-2">', 200
-
-@app.route('/test-level1-2')
-def testlevel1_2():
-        return '<a href="/test-level2-3"><a href="/test-level2-4">', 200
-
-@app.route('/test-level2-1')
-def testlevel1_2():
-        return '', 200
-
-@app.route('/test-level2-2')
-def testlevel1_2():
-        return '', 200
-
-@app.route('/test-level2-3')
-def testlevel1_2():
-        return '', 200
-
-@app.route('/test-level2-4')
-def testlevel1_2():
-        return '', 200
