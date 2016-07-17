@@ -7,9 +7,10 @@ from google.appengine.api import urlfetch
 import lxml
 from lxml import html
 from sys import setrecursionlimit
+from Queue import *
 app = Flask(__name__)
 
-setrecursionlimit(100000000)
+urlfetch.set_default_fetch_deadline(10)
 
 #################################
 # Helper Functions
@@ -38,41 +39,62 @@ def getPageLinks(parentURL, level):
 # Breadth First Crawl
 #################################
 
-def extendBFSResults(link, recursionLimit, currentLevel, start_time, this_level_results):
+def extendBFSResults(link, queue, bfs_result_array):
     lock = threading.Lock()
-    lock.acquire()
-    new_results = breadthFirstCrawl(link['child'], recursionLimit, currentLevel + 1, start_time)
-    this_level_results.extend(new_results)
-    lock.release()
+    links = None
 
-
-def breadthFirstCrawl(startingURL, recursionLimit, currentLevel, start_time):
-    print "BFS Level " + str(currentLevel) + " " + startingURL
-    printElapsedTime(start_time)
-
-    parent_links = None
-    this_level_results = []
     try:
-        parent_links = getPageLinks(startingURL, currentLevel)
+        links = getPageLinks(link['child'], link['level'])
     except:
         pass
 
-    if parent_links:
-        this_level_results.extend(parent_links)
-
-    if currentLevel < recursionLimit and parent_links:
-        # crawl each page in a separate thread
-        crawler_jobs = []
-        for link in parent_links:
-            new_thread = threading.Thread(target=extendBFSResults(link, recursionLimit, currentLevel, start_time, this_level_results))
-            crawler_jobs.append(new_thread)
+    if links:
+        # put new links in back of the queue
+        for l in links:
+            queue.put((l['level'], l), True, 5)
         
-        for thread in crawler_jobs:
-            thread.start()
-        for thread in crawler_jobs:
-            thread.join()
+        # add to results
+        lock.acquire()
+        bfs_result_array.extend(links)
+        lock.release()
 
-    return this_level_results
+def breadthFirstCrawl(startingURL, recursionLimit):
+    start_time = time.time()
+    bfs_result_array = []
+
+    # Each entry is (priority, object)
+    # This ensures breadth first crawling because lowest level items are crawled first
+    queue = PriorityQueue()
+
+    queue.put((0, {'parent': None, 'child': startingURL, 'level': 0}))
+
+    while not queue.empty():
+        next = queue.get(True, 5)[1]
+        current_depth = next['level']
+        this_level = [next]
+        while next['level'] == current_depth and not queue.empty():
+            next = queue.get(True, 5)[1]
+            if next['level'] < current_depth:
+                queue.put((next['level'], next), True, 5)
+            else:
+                this_level.append(next)
+        
+        if current_depth <= recursionLimit:
+            crawler_jobs = []
+            for link in this_level:
+                print "BFS Level " + str(current_depth) + " " + link['child']
+                printElapsedTime(start_time)
+
+                # create thread for each link
+                new_thread = threading.Thread(target=extendBFSResults(link, queue, bfs_result_array))
+                crawler_jobs.append(new_thread)
+
+            for thread in crawler_jobs:
+                thread.start()
+            for thread in crawler_jobs:
+                thread.join()
+
+    return bfs_result_array
 
 #################################
 # Depth First Crawl
@@ -80,7 +102,6 @@ def breadthFirstCrawl(startingURL, recursionLimit, currentLevel, start_time):
 
 def extendDFSResults(link, stack, dfs_result_array):
     lock = threading.Lock()
-
     links = None
     try:
         links = getPageLinks(link['child'], link['level'])
@@ -144,7 +165,7 @@ def crawl():
     search_start_time = time.time()
     result = []
     if searchType == 'bfs':
-        result = breadthFirstCrawl(startingURL, recursionLimit, 0, start_time)
+        result = breadthFirstCrawl(startingURL, recursionLimit)
     elif searchType == 'dfs':
         result = depthFirstCrawl(startingURL, recursionLimit)
     else:
