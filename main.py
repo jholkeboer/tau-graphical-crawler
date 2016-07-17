@@ -192,3 +192,60 @@ def application_error(e):
 
 if __name__ == '__main__':
 	app.run(host='127.0.0.1', port=8080, debug=True)
+
+
+#############
+# Test pages
+# These pages have a tree structure:
+#               level0-1
+#            /             \
+#     level1-1             level1-2
+#     /      \             /        \
+# level2-1  level2-2   level2-3   level2-4
+
+# BFS should crawl in this order:
+# level0-1
+# level1-1
+# level1-2
+# level2-1
+# level2-2
+# level2-3
+# level2-4
+
+# DFS should crawl in this order:
+# level0-1
+# level1-1
+# level2-1
+# level2-2
+# level1-2
+# level2-3
+# level2-4
+
+#############
+@app.route('/test-level0-1')
+def testlevel0_1():
+    return '<a href="/test-level1-1"><a href="/test-level1-2">', 200
+
+@app.route('/test-level1-1')
+def testlevel1_1():
+    return '<a href="/test-level2-1"><a href="/test-level2-2">', 200
+
+@app.route('/test-level1-2')
+def testlevel1_2():
+        return '<a href="/test-level2-3"><a href="/test-level2-4">', 200
+
+@app.route('/test-level2-1')
+def testlevel1_2():
+        return '', 200
+
+@app.route('/test-level2-2')
+def testlevel1_2():
+        return '', 200
+
+@app.route('/test-level2-3')
+def testlevel1_2():
+        return '', 200
+
+@app.route('/test-level2-4')
+def testlevel1_2():
+        return '', 200
