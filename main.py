@@ -6,7 +6,6 @@ from flask import Flask, render_template, request
 from google.appengine.api import urlfetch
 import lxml
 from lxml import html
-from sys import setrecursionlimit
 from Queue import *
 app = Flask(__name__)
 
