@@ -4,7 +4,6 @@
 		<title>Tau Web-Crawler</title>
 	</head>
 	<body>
-		{{content}}
 		<p>
 			<form id="crawler-input-form">
 				<p>
@@ -24,10 +23,18 @@
 				</p>
 			</form>
 			<button id="submit-crawl">Crawl!</button>
+			<p><label id="mouseover-link">Traces:</label>
+			<p><input type="text" id="keyword-search" size="64" placeholder="graph keyword search"/><input type="button" id="btn-keyword-search" value="search"></input>
 		</p>
+		<p><canvas id="viewport" width="800" height="600"></canvas>
+		<script src="static/arbor/lib/arbor.js"></script>
+		<script src="static/arbor/lib/arbor-tween.js"></script>
+		<script src="static/arbor/lib/arbor-graphics.js"></script>
+		<script src="static/main.js"></script>
 	</body>
 </html>
 
+<!--
 <script type="text/javascript">
 	function submitCrawl() {
 		var startingURL = document.getElementById("starting-url").value;
@@ -49,3 +56,4 @@
 
 	document.getElementById("submit-crawl").addEventListener("click", submitCrawl, false);
 </script>
+!-->
