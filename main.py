@@ -59,15 +59,14 @@ def formatResult(result):
         current_children = new_result['edges'].get(link['parent_title'])
 
         current_parent = new_result['edges'].pop(link['parent'], None)
-        new_result['edges'][link['parent_title']] = {link['parent']: {}}
-        if current_parent:
-            new_result['edges'][link['parent_title']].update(current_parent[link['child']])
 
         if link['parent_title'] not in new_result['edges']:
             new_result['edges'][link['parent_title']] = {}
 
-        new_result['edges'][link['parent_title']].update({link['child']: {}})
+        if current_parent:
+            new_result['edges'][link['parent_title']].update(current_parent[link['child']])
 
+        new_result['edges'][link['parent_title']].update({link['child']: {}})
         
         if link['child'] not in new_result['edges']:
             new_result['edges'][link['child']] = {}
@@ -211,7 +210,7 @@ def crawl():
     print str(len(result)) + " links crawled."
     printElapsedTime(search_start_time)
 
-    return json.dumps({'status': 'Ok', 'count': len(result), 'result': result, 'seconds_elapsed': search_elapsed_time})
+    return json.dumps({'status': 'Ok', 'count': len(result), 'result': formatted_result, 'seconds_elapsed': search_elapsed_time})
 
 
 @app.errorhandler(404)
