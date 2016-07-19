@@ -27,13 +27,58 @@ def getPageLinks(parentURL, level):
     tree = lxml.html.fromstring(res.content)
 
     links = []
+    title = None
+    for node in tree.iter():
+        if node.tag == 'title':
+            title = node.text.strip()
+            break
+
+    if not title:
+        title = parentURL
+
     for node in tree.iter():
         if node.tag == 'a':
             link = node.get('href')
             if link and link.startswith('http'):
-                nextLink = {'parent': parentURL, 'child': link, 'level': level + 1}
+                nextLink = {'parent_title': title, 'parent': parentURL, 'child': link, 'level': level + 1}
                 links.append(nextLink)
+
     return links
+
+def formatResult(result):
+    link_parents = {}
+
+    old_result = sorted(result, key=lambda x: x['level'])
+    new_result = {'nodes': {}, 'edges': {}}
+    max_level = 0
+
+    for link in old_result:
+        if link['level'] > max_level:
+            max_level += 1
+        link_parents[link['child']] = link['parent_title']
+        new_result['nodes'][link['parent_title']] = {'link': link['parent'], 'level': link['level']}
+        current_children = new_result['edges'].get(link['parent_title'])
+
+        current_parent = new_result['edges'].pop(link['parent'], None)
+        new_result['edges'][link['parent_title']] = {link['parent']: {}}
+        if current_parent:
+            new_result['edges'][link['parent_title']].update(current_parent[link['child']])
+
+        if link['parent_title'] not in new_result['edges']:
+            new_result['edges'][link['parent_title']] = {}
+
+        new_result['edges'][link['parent_title']].update({link['child']: {}})
+
+        
+        if link['child'] not in new_result['edges']:
+            new_result['edges'][link['child']] = {}
+    
+    for edge in new_result['edges']:
+        if edge not in new_result['nodes']:
+            new_result['nodes'].update({edge: {'link': edge, 'level': max_level}})
+
+    return new_result        
+
 
 #################################
 # Breadth First Crawl
@@ -129,7 +174,7 @@ def depthFirstCrawl(startingURL, recursionLimit):
     while len(stack) > 0:
         next = stack.pop()
         if next['level'] <= recursionLimit:
-            print "BFS Level " + str(next['level']) + " " + next['child']
+            print "DFS Level " + str(next['level']) + " " + next['child']
             printElapsedTime(start_time)
             extendDFSResults(next, stack, dfs_result_array)
 
@@ -159,6 +204,14 @@ def crawl():
     else:
         result = []
     search_elapsed_time = time.time() - search_start_time
+
+    # Format results
+    print "Formatting results..."
+    formatted_result = formatResult(result)
+
+    for f in formatted_result:
+        print f
+        print formatted_result[f]
 
     print str(len(result)) + " links crawled."
     printElapsedTime(search_start_time)
