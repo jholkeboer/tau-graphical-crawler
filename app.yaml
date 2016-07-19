@@ -31,3 +31,6 @@ handlers:
 #libraries:
 #- name: jinja2
 #  version: latest
+libraries:
+- name: lxml
+  version: latest
