@@ -209,10 +209,6 @@ def crawl():
     print "Formatting results..."
     formatted_result = formatResult(result)
 
-    for f in formatted_result:
-        print f
-        print formatted_result[f]
-
     print str(len(result)) + " links crawled."
     printElapsedTime(search_start_time)
 
