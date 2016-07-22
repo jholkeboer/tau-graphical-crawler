@@ -1,4 +1,4 @@
-/*	 var crawlerResults = {
+	 var crawlerResultsSample = {
 	 	nodes:{
 				google:{link:"http://www.google.com",level:0},
 				yahoo:{link:"http://www.yahoo.com",level:1},
@@ -11,7 +11,7 @@
 				yahoo:{lycos:{},metacrawler:{}},
 				lycos:{ask:{}}
 		}
-	}*/
+	}
 
 function htmlCode(level, totalLevels){
 	// htmlCode(level, totalLevels) where level is 0 indexed and totalLevels is a count
@@ -112,17 +112,25 @@ function htmlCode(level, totalLevels){
 
           // draw a line from pt1 to pt2
           ctx.strokeStyle = "rgba(0,0,0, .333)"
-          ctx.lineWidth = 1
-          ctx.beginPath()
-          ctx.moveTo(pt1.x, pt1.y)
-          ctx.lineTo(pt2.x, pt2.y)
-          ctx.stroke()
+          ctx.lineWidth = 0.25
+          ctx.beginPath();
+          ctx.moveTo(pt1.x, pt1.y);
+          ctx.lineTo(pt2.x, pt2.y);
+			 ctx.closePath();
+			 ctx.strokeStyle = "grey";
+          ctx.stroke();
         })
 
         particleSystem.eachNode(function(node, pt){
           // node: {mass:#, p:{x,y}, name:"", data:{}}
           // pt:   {x:#, y:#}  node position in screen coords
-
+			
+			
+			ctx.arc(pt.x,pt.y,2,0,2.0* Math.PI);
+			ctx.closePath();
+			ctx.fillStyle = "grey";
+			ctx.fill();
+			/*
 		    var w = ctx.measureText(node.data.name||"").width+20
 			 var label = node.name
 			 ctx.clearRect(pt.x-w/2,pt.y-7,w,20)
@@ -131,6 +139,7 @@ function htmlCode(level, totalLevels){
 			 //ctx.fillStyle = "#" + htmlCode(node.data.level,4);
 			 ctx.fillStyle = "grey";
 			 ctx.fillText(label||"",pt.x,pt.y+4)
+			 */
         })    			
       },
       
@@ -211,8 +220,9 @@ function htmlCode(level, totalLevels){
   }    
 
   $(document).ready(function(){
-    var sys = arbor.ParticleSystem(1000, 600, 0.5) // ( repulsion/stiffness/friction )
-    sys.parameters({gravity:true}) // use center-gravity to make the graph settle nicely (ymmv)
+//    var sys = arbor.ParticleSystem(1000, 600, 0.5) // ( repulsion/stiffness/friction )
+		var sys = arbor.ParticleSystem(1, 1, 1) // ( repulsion/stiffness/friction )
+    sys.parameters({gravity:false}) // use center-gravity to make the graph settle nicely (ymmv)
     sys.renderer = Renderer("#viewport") // our newly created renderer will have its .init() method called shortly by sys...
 	 $("#submit-crawl").click(sys, submitCrawl);
 		
