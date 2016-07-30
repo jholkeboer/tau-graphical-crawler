@@ -38,45 +38,43 @@ function nodeColors(levels){
 
 (function($){
 
-	var included;
-	var excluded;
+	var shown = {nodes:{},edges:{}};
+	var hidden = {nodes:{},edges:{}};
+//	if (typeof hidden.edges[i] == "undefined"){
+
  	var showObj = function(ps,obj,numEdges){
 		var c = 0;
-		included = {nodes:{},edges:{}};
-		excluded = {nodes:{},edges:{}};
+
 		$.map(obj.edges, function(val,i){
 			if (c < numEdges){
-				included.edges[i] = {};
-				included.nodes[i] = JSON.parse(JSON.stringify(obj.nodes[i]));	
+				shown.edges[i] = shown.edges[i] || {};
+				shown.nodes[i] = shown.nodes[i] || JSON.parse(JSON.stringify(obj.nodes[i]));	
 			} else {
-				excluded.edges[i] = {};
-				excluded.nodes[i] = JSON.parse(JSON.stringify(obj.nodes[i]));
+				hidden.edges[i] = hidden.edges[i] || {};
+				hidden.nodes[i] = hidden.nodes[i] || JSON.parse(JSON.stringify(obj.nodes[i]));
 			}
 			for (var property in val){
 				if (val.hasOwnProperty(property)){
+					console.log(property);
 					if (c < numEdges){
-						included.edges[i][property] = {};
-						included.nodes[property] = JSON.parse(JSON.stringify(obj.nodes[property]));
+						shown.edges[i][property] = shown.edges[i][property] || {};
+						shown.nodes[property] = shown.nodes[property] || JSON.parse(JSON.stringify(obj.nodes[property]));
 					} else {
-						if (typeof excluded.edges[i] == "undefined"){
-							excluded.edges[i] = {};
-							excluded.nodes[i] = JSON.parse(JSON.stringify(obj.nodes[i]));
-						}
-						excluded.edges[i][property] = {};
-						excluded.nodes[property] = JSON.parse(JSON.stringify(obj.nodes[property]));
+						hidden.edges[i] = hidden.edges[i] || {};
+						hidden.nodes[i] = hidden.nodes[i] || {};
+						hidden.edges[i][property] = hidden.edges[i][property] || {};
+						hidden.nodes[property] = hidden.nodes[property] || JSON.parse(JSON.stringify(obj.nodes[property]));
 					}
 					c += 1;
 				}
 			}
 		});			
-		/*
-		console.log("included:");
-		console.log(included);
-		console.log("excluded: ");
-		console.log(excluded);
-		*/
-		ps.data.merge(included);
-		return [included,excluded];
+		console.log("shown:");
+		console.log(shown);
+		console.log("hidden: ");
+		console.log(hidden);
+		ps.data.merge(shown);
+		return [shown,hidden];
 	}
 
  	var clearCanvas = function(ps){
@@ -100,9 +98,9 @@ function nodeColors(levels){
 					"searchType": searchType},
 			success: function(result) {
 				var crawlerResults = JSON.parse(result).result;
-				var ds = showObj(ps,crawlerResultsSample,3);
-				included = ds[0];
-				excluded = ds[1];
+				var ds = showObj(ps,crawlerResults,3);
+				shown = ds[0];
+				hidden = ds[1];
 			}
 		})
 	}
@@ -243,14 +241,14 @@ function nodeColors(levels){
 					scrollDown += 1;
 					if (scrollDown == 5){
 						scrollDown = 0;
-						increaseNodes();
+						//increaseNodes();
 
 					}
 				} else {
 					scrollUp += 1;
 					if (scrollUp == 5){
 						scrollUp = 0;
-						decreaseNodes();
+						//decreaseNodes();
 					}
 				}
 				return false;
@@ -258,6 +256,8 @@ function nodeColors(levels){
 
 			 preventCanvasWindow:function(e){
 				e.preventDefault();
+				$(window).bind("mousewheel",function(e){return false;});
+				$(window).bind("DOMMouseScroll",function(e){return false;});
 				return false;
 			 },
         }
