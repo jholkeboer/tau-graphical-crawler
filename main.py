@@ -48,50 +48,23 @@ def formatResult(result):
     link_parents = {}
 
     old_result = sorted(result, key=lambda x: x['level'])
-    start_url = old_result[0]['parent']
-    start_title = old_result[0]['parent_title']
     new_result = {'nodes': {}, 'edges': {}}
     max_level = 0
 
-    start_links = []
-    for x in old_result:
-        if x['parent'] == start_url:
-            start_links.append(x['child'])
-        else:
-            break
 
     for link in old_result:
+        new_result['nodes'][link['parent']] = {'name': link['parent_title'], 'level': link['level']}
+        
+        if link['parent'] not in new_result['edges']:
+            new_result['edges'][link['parent']] = {}
+        new_result['edges'][link['parent']].update({link['child']: {}})
+
         if link['level'] > max_level:
             max_level += 1
-        link_parents[link['child']] = link['parent_title']
-        new_result['nodes'][link['parent_title']] = {'link': link['parent'], 'level': link['level']}
-        current_children = new_result['edges'].get(link['parent_title'])
 
-        current_parent = new_result['edges'].pop(link['parent'], None)
-
-        if link['parent_title'] not in new_result['edges']:
-            new_result['edges'][link['parent_title']] = {}
-
-        if current_parent:
-            new_result['edges'][link['parent_title']].update(current_parent[link['child']])
-
-        new_result['edges'][link['parent_title']].update({link['child']: {}})
-        
-        if link['child'] not in new_result['edges']:
-            new_result['edges'][link['child']] = {}
-    
     for edge in new_result['edges']:
         if edge not in new_result['nodes']:
             new_result['nodes'].update({edge: {'link': edge, 'level': max_level}})
-
-        # Fill in link titles for start page
-        if edge == start_title:
-            new_result['edges'][start_title] = {}
-            for link in start_links:
-                for n in new_result['nodes']:
-                    if new_result['nodes'][n]['link'] == link:
-                        new_result['edges'][start_title].update({n: {}})
-                        break
 
     return new_result        
 
