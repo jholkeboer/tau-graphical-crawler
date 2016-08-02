@@ -1,4 +1,4 @@
-	 var crawlerResultsSample = {
+/*	 var crawlerResultsSample = {
 	 	nodes:{
 				google:{link:"http://www.google.com",level:0},
 				yahoo:{link:"http://www.yahoo.com",level:1},
@@ -21,15 +21,15 @@
 		edges:{
 				google:{yahoo:{}},
 		}
-	}
+	}*/
+
 
 function nodeColors(levels){
-	var partition = (510 / levels).toPrecision(3);
+	var partition = (510 / (levels)).toPrecision(3);
 	var colors = []
-	for (var i = 0 ; i < levels ; i++){
+	for (var i = 0 ; i < levels+1 ; i++){
 		var n = partition * i;
-		var r = (n <= 255) ? 255 : 255 - n % 255;
-		if (n == 510) r = 0;
+		var r = (n <= 255) ? 255 : 510 - n;
 		var b = (n <= 255) ? n : 255; 
 		colors.push({"r":r,"g":0,"b":b});
 	}
@@ -40,41 +40,45 @@ function nodeColors(levels){
 
 	var shown = {nodes:{},edges:{}};
 	var hidden = {nodes:{},edges:{}};
-//	if (typeof hidden.edges[i] == "undefined"){
+	var key, rootKey, childkeys,noEdges;
 
- 	var showObj = function(ps,obj,numEdges){
+ 	var addObj = function(ps,obj,numEdges){
 		var c = 0;
-
-		$.map(obj.edges, function(val,i){
-			if (c < numEdges){
-				shown.edges[i] = shown.edges[i] || {};
-				shown.nodes[i] = shown.nodes[i] || JSON.parse(JSON.stringify(obj.nodes[i]));	
-			} else {
-				hidden.edges[i] = hidden.edges[i] || {};
-				hidden.nodes[i] = hidden.nodes[i] || JSON.parse(JSON.stringify(obj.nodes[i]));
-			}
-			for (var property in val){
-				if (val.hasOwnProperty(property)){
-					console.log(property);
-					if (c < numEdges){
-						shown.edges[i][property] = shown.edges[i][property] || {};
-						shown.nodes[property] = shown.nodes[property] || JSON.parse(JSON.stringify(obj.nodes[property]));
-					} else {
-						hidden.edges[i] = hidden.edges[i] || {};
-						hidden.nodes[i] = hidden.nodes[i] || {};
-						hidden.edges[i][property] = hidden.edges[i][property] || {};
-						hidden.nodes[property] = hidden.nodes[property] || JSON.parse(JSON.stringify(obj.nodes[property]));
-					}
+		while( c < numEdges){
+			shown.edges[key] = shown.edges[key] || {};
+			shown.nodes[key] = shown.nodes[key] || JSON.parse(JSON.stringify(obj.nodes[key]));
+			var keys = Object.keys(obj.edges[key]);
+			for ( var child in obj.edges[key] ){
+				if (obj.edges[key].hasOwnProperty(child)){
 					c += 1;
+					shown.edges[key][child] = JSON.parse(JSON.stringify(obj.edges[key][child]));
+					//console.log("key");
+					//console.log(key);
+					//console.log("deleting");
+					//console.log(child);
+					//console.log("from");
+					//console.log(hidden.edges[key]);
+					delete hidden.edges[key][child];
+					//console.log(hidden.edges);
+					//console.log(shown.nodes);
+					//console.log(child);
+					//console.log(obj.nodes);
+					//console.log(obj.nodes[child]);
+					try {
+						shown.nodes[child] = JSON.parse(JSON.stringify(obj.nodes[child]));
+					} catch(err){
+						console.log(child + " not a node in request");
+					}
 				}
+				if (c >= numEdges) break;
 			}
-		});			
-		console.log("shown:");
-		console.log(shown);
-		console.log("hidden: ");
-		console.log(hidden);
+			if ($.isEmptyObject(hidden.edges[key])){
+				delete hidden.edges[key];
+				key = keys.pop(keys);
+			}
+		}
 		ps.data.merge(shown);
-		return [shown,hidden];
+		return [shown,hidden,key];
 	}
 
  	var clearCanvas = function(ps){
@@ -97,10 +101,30 @@ function nodeColors(levels){
 					"recursionLimit": recursionLimit,
 					"searchType": searchType},
 			success: function(result) {
+
+				shown = {nodes:{},edges:{}};
+				hidden = {nodes:{},edges:{}};
+				childkeys = [];
 				var crawlerResults = JSON.parse(result).result;
-				var ds = showObj(ps,crawlerResults,3);
+				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+					return crawlerResults.nodes[value].level == 1;
+				})[0];
+				key = rootKey;
+				hidden = JSON.parse(JSON.stringify(crawlerResults));
+				console.log("Original");
+				console.log(JSON.stringify(crawlerResults));
+				var ds = addObj(ps,crawlerResults, 3);
 				shown = ds[0];
 				hidden = ds[1];
+				key = ds[2];
+				childKeys = ds[3];
+
+				//console.log("shown:");
+				//console.log(shown);
+				//console.log("hidden: ");
+				//console.log(hidden);
+				//console.log("key: ");
+				//console.log(key);
 			}
 		})
 	}
@@ -110,7 +134,7 @@ function nodeColors(levels){
     var dom = $(canvas)
     var canvas = $(canvas).get(0)
     var ctx = canvas.getContext("2d")
-	 var depth = parseInt(document.getElementById("recursion-limit").value) + 1;
+	 var depth = parseInt(document.getElementById("recursion-limit").value);
 
 	 var that = {
       init:function(system){
@@ -171,20 +195,18 @@ function nodeColors(levels){
 			
 			var c = nodeColors(depth);
 			var l = parseInt(node.data.level)-1;
+
 			/*
 			if (50 + 500 * (l / depth) > 0)	
 				node.p.y = 50 + 500 * (l / depth)
 			*/
-			ctx.fillStyle = "grey";
-
-			/*
-			if (l){
-				ctx.fillStyle = "rgba(" + c[l].r + "," + c[l].g + "," + c[l].b +",.333)";
+			if (l >= 0){
+				ctx.fillStyle = "rgba(" + c[l].r + "," + c[l].g + "," + c[l].b +",.8)";
 			} else {
 				ctx.fillStyle = "grey";
-			}*/
+			}
 			ctx.beginPath();
-			ctx.arc(pt.x,pt.y,2,0,2.0* Math.PI);
+			ctx.arc(pt.x,pt.y,5,0,2.0* Math.PI);
 			ctx.closePath();
 			ctx.fill();
 			 //var w = ctx.measureText(node.data.name||"").width+20
@@ -241,23 +263,34 @@ function nodeColors(levels){
 					scrollDown += 1;
 					if (scrollDown == 5){
 						scrollDown = 0;
-						//increaseNodes();
-
 					}
 				} else {
 					scrollUp += 1;
-					if (scrollUp == 5){
+					if (scrollUp == 2){
 						scrollUp = 0;
-						//decreaseNodes();
+					//	console.log(JSON.stringify(hidden.edges));
+					//	console.log(!$.isEmptyObject(hidden.edges[key]));
+						if (!$.isEmptyObject(hidden.edges[key])){
+							var p = {data:particleSystem};
+							addObj(p, hidden, 1);
+						} else {
+							console.log("All nodes graphed!");
+						}
 					}
 				}
 				return false;
 		  	 },
 
-			 preventCanvasWindow:function(e){
+			 preventWindowScroll:function(e){
 				e.preventDefault();
 				$(window).bind("mousewheel",function(e){return false;});
 				$(window).bind("DOMMouseScroll",function(e){return false;});
+				return false;
+			 },
+
+			 unbindScrollLock:function(e){
+				$(window).unbind("mousewheel");
+				$(window).unbind("DOMMouseScroll");
 				return false;
 			 },
         }
@@ -265,6 +298,7 @@ function nodeColors(levels){
         // start listening
         $(canvas).mousedown(handler.clicked);
 		  $(canvas).mousemove(handler.mouseover);
+		  $(canvas).mouseleave(handler.unbindScrollLock);
 		  $(canvas).bind("mousewheel",handler.scroll);
 		  $(canvas).bind("DOMMouseScroll",handler.scroll);
 		  $(canvas).bind("mouseover",handler.preventWindowScroll);

@@ -48,8 +48,17 @@ def formatResult(result):
     link_parents = {}
 
     old_result = sorted(result, key=lambda x: x['level'])
+    start_url = old_result[0]['parent']
+    start_title = old_result[0]['parent_title']
     new_result = {'nodes': {}, 'edges': {}}
     max_level = 0
+
+    start_links = []
+    for x in old_result:
+        if x['parent'] == start_url:
+            start_links.append(x['child'])
+        else:
+            break
 
     for link in old_result:
         if link['level'] > max_level:
@@ -74,6 +83,15 @@ def formatResult(result):
     for edge in new_result['edges']:
         if edge not in new_result['nodes']:
             new_result['nodes'].update({edge: {'link': edge, 'level': max_level}})
+
+        # Fill in link titles for start page
+        if edge == start_title:
+            new_result['edges'][start_title] = {}
+            for link in start_links:
+                for n in new_result['nodes']:
+                    if new_result['nodes'][n]['link'] == link:
+                        new_result['edges'][start_title].update({n: {}})
+                        break
 
     return new_result        
 
