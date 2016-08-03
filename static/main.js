@@ -1,29 +1,3 @@
-/*	 var crawlerResultsSample = {
-	 	nodes:{
-				google:{link:"http://www.google.com",level:0},
-				yahoo:{link:"http://www.yahoo.com",level:1},
-				lycos:{link:"http://www.lycos.com",level:2},
-				metacrawler:{link:"http://www.metacrawler.com",level:2},
-				ask:{link:"http://www.ask.com",level:3}
-				},
-		edges:{
-				google:{yahoo:{}},
-				yahoo:{lycos:{},metacrawler:{}},
-				lycos:{ask:{}}
-		}
-	}
-
-	 var crawlerResultsSample2 = {
-	 	nodes:{
-				google:{link:"http://www.google.com",level:0},
-				yahoo:{link:"http://www.yahoo.com",level:1},
-				},
-		edges:{
-				google:{yahoo:{}},
-		}
-	}*/
-
-
 function nodeColors(levels){
 	var partition = (510 / (levels)).toPrecision(3);
 	var colors = []
@@ -38,47 +12,52 @@ function nodeColors(levels){
 
 (function($){
 
+	// declare branches shown/hidden
 	var shown = {nodes:{},edges:{}};
-	var hidden = {nodes:{},edges:{}};
-	var key, rootKey, childkeys,noEdges;
+	var hidden = {nodes:{},edges:{}}; 
+	// queue to track which key was last plotted
+	var keys = [];
+	var rootKey, noEdges;
 
  	var addObj = function(ps,obj,numEdges){
+ 		// counter for numEdges
 		var c = 0;
+
+		// find edges to plot onto graph
 		while( c < numEdges){
-			shown.edges[key] = shown.edges[key] || {};
-			shown.nodes[key] = shown.nodes[key] || JSON.parse(JSON.stringify(obj.nodes[key]));
-			var keys = Object.keys(obj.edges[key]);
+
+			// get key first element from queue
+			var key = keys.shift();
+			keys = keys.concat(Object.keys(obj.edges[key]));
+			
+			shown.edges[key]= (typeof shown.edges[key] == "undefined") ? {} : shown.edges[key];
+			shown.nodes[key] = (typeof shown.nodes[key] == "undefined") ? JSON.parse(JSON.stringify(obj.nodes[key])) : shown.nodes[key];
+
 			for ( var child in obj.edges[key] ){
 				if (obj.edges[key].hasOwnProperty(child)){
 					c += 1;
 					shown.edges[key][child] = JSON.parse(JSON.stringify(obj.edges[key][child]));
-					//console.log("key");
-					//console.log(key);
-					//console.log("deleting");
-					//console.log(child);
-					//console.log("from");
-					//console.log(hidden.edges[key]);
 					delete hidden.edges[key][child];
-					//console.log(hidden.edges);
-					//console.log(shown.nodes);
-					//console.log(child);
-					//console.log(obj.nodes);
-					//console.log(obj.nodes[child]);
-					try {
-						shown.nodes[child] = JSON.parse(JSON.stringify(obj.nodes[child]));
-					} catch(err){
-						console.log(child + " not a node in request");
-					}
+					shown.nodes[child] = JSON.parse(JSON.stringify(obj.nodes[child]));
+
 				}
+
+				// Exit if numEdges desired to be shown is met
 				if (c >= numEdges) break;
 			}
+
+			// Trim dangling edges
 			if ($.isEmptyObject(hidden.edges[key])){
 				delete hidden.edges[key];
-				key = keys.pop(keys);
+				//break;
 			}
 		}
+
+		// plot graph onto screen
 		ps.data.merge(shown);
-		return [shown,hidden,key];
+
+		// track state of graph
+		return [shown,hidden,keys];
 	}
 
  	var clearCanvas = function(ps){
@@ -109,22 +88,21 @@ function nodeColors(levels){
 				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
 					return crawlerResults.nodes[value].level == 1;
 				})[0];
-				key = rootKey;
+
+				keys.push(rootKey);
 				hidden = JSON.parse(JSON.stringify(crawlerResults));
 				console.log("Original");
 				console.log(JSON.stringify(crawlerResults));
 				var ds = addObj(ps,crawlerResults, 3);
 				shown = ds[0];
 				hidden = ds[1];
-				key = ds[2];
-				childKeys = ds[3];
-
-				//console.log("shown:");
-				//console.log(shown);
-				//console.log("hidden: ");
-				//console.log(hidden);
-				//console.log("key: ");
-				//console.log(key);
+				keys = ds[2];
+				console.log("shown:");
+				console.log(shown);
+				console.log("hidden: ");
+				console.log(hidden);
+				console.log("keys: ");
+				console.log(keys);
 			}
 		})
 	}
@@ -134,7 +112,7 @@ function nodeColors(levels){
     var dom = $(canvas)
     var canvas = $(canvas).get(0)
     var ctx = canvas.getContext("2d")
-	 var depth = parseInt(document.getElementById("recursion-limit").value);
+	 var depth = parseInt(document.getElementById("recursion-limit").value) + 1;
 
 	 var that = {
       init:function(system){
@@ -190,17 +168,11 @@ function nodeColors(levels){
           // node: {mass:#, p:{x,y}, name:"", data:{}}
           // pt:   {x:#, y:#}  node position in screen coords
 
-			//ctx.fillStyle = "#" + htmlCode(node.data.level,2);
 			node.fixed = true;
-			
 			var c = nodeColors(depth);
 			var l = parseInt(node.data.level)-1;
 
-			/*
-			if (50 + 500 * (l / depth) > 0)	
-				node.p.y = 50 + 500 * (l / depth)
-			*/
-			if (l >= 0){
+			if (l >= 0 && typeof c[l] != "undefined"){
 				ctx.fillStyle = "rgba(" + c[l].r + "," + c[l].g + "," + c[l].b +",.8)";
 			} else {
 				ctx.fillStyle = "grey";
@@ -209,20 +181,10 @@ function nodeColors(levels){
 			ctx.arc(pt.x,pt.y,5,0,2.0* Math.PI);
 			ctx.closePath();
 			ctx.fill();
-			 //var w = ctx.measureText(node.data.name||"").width+20
-			 //var label = node.name
-			 //ctx.clearRect(pt.x-w/2,pt.y-7,w,20)
-			 //ctx.font = "bold 11px Consolas"
-			 //ctx.textAlign = "center"
-			 //ctx.fillStyle = "#" + htmlCode(node.data.level,4);
-			 //ctx.fillStyle = "grey";
-			 //ctx.fillText(label||"",pt.x,pt.y+4)
 		  })    			
       },
       
       initMouseHandling:function(){
-        // no-nonsense drag and drop (thanks springy.js)
-        var dragged = null;
 		  var nearest = null;
 		  var scrollUp = 0;
 		  var scrollDown = 0;
@@ -236,7 +198,7 @@ function nodeColors(levels){
 				nearest = particleSystem.nearest(_mouseP);
 				selected = (nearest.distance < 50) ? nearest : null
             if (selected && selected.node !== null){
-					window.open(selected.node.data.link,'_blank');
+					window.open(selected.node.name,'_blank');
             }
             return false
           },
@@ -246,13 +208,13 @@ function nodeColors(levels){
 				lbl.text("Site: ")
             var pos = $(canvas).offset();
             _mouseP = arbor.Point(e.pageX-pos.left, e.pageY-pos.top)
-            nearest = dragged = particleSystem.nearest(_mouseP);
+            nearest = particleSystem.nearest(_mouseP);
 				nearest = (nearest.distance < 50) ? nearest : null
 
 				if (nearest && nearest.node != null){
 					var link = document.createElement("a")
-					link.text = nearest.node.data.link
-					link.href = nearest.node.data.link
+					link.text = nearest.node.name
+					link.href = nearest.node.name
 					lbl.append(link)
 				}
 				return false
@@ -268,14 +230,12 @@ function nodeColors(levels){
 					scrollUp += 1;
 					if (scrollUp == 2){
 						scrollUp = 0;
-					//	console.log(JSON.stringify(hidden.edges));
-					//	console.log(!$.isEmptyObject(hidden.edges[key]));
-						if (!$.isEmptyObject(hidden.edges[key])){
+						//if (!$.isEmptyObject(hidden.edges[key])){
 							var p = {data:particleSystem};
 							addObj(p, hidden, 1);
-						} else {
-							console.log("All nodes graphed!");
-						}
+						//} else {
+						//	console.log("All nodes graphed!");
+						//}
 					}
 				}
 				return false;
@@ -310,8 +270,7 @@ function nodeColors(levels){
   }    
 
   $(document).ready(function(){
-//		var sys = arbor.ParticleSystem({friction:0.2, stiffness:250, repulsion:10, fps:100, dt:0.01, precision: 0.1})
-		var sys = arbor.ParticleSystem({friction:0.5, stiffness:25, repulsion:10, fps:100, dt:0.01, precision: 0.1})
+	var sys = arbor.ParticleSystem({friction:0.5, stiffness:25, repulsion:10, fps:100, dt:0.01, precision: 0.1})
     sys.parameters({gravity:false}) // use center-gravity to make the graph settle nicely (ymmv)
     sys.renderer = Renderer("#viewport") // our newly created renderer will have its .init() method called shortly by sys...
 	 $("#submit-crawl").click(sys, submitCrawl);
