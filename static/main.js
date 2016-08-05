@@ -93,6 +93,12 @@ function getCookie(){
 		var recursionLimit = document.getElementById("recursion-limit").value;
 		var searchElement = document.getElementById("search-type");
 		var searchType = searchElement.options[searchElement.selectedIndex].value;
+		var crawlButton = document.getElementById("submit-crawl");
+		crawlButton.disabled = true;
+		crawlButton.innerHTML = "Please wait, loading...";
+		document.getElementById("starting-url").disabled = true;
+		document.getElementById("recursion-limit").disabled = true;
+		searchElement.disabled = true;
 
 		$.ajax({
 			url: "/crawl",
@@ -101,7 +107,6 @@ function getCookie(){
 					"recursionLimit": recursionLimit,
 					"searchType": searchType},
 			success: function(result) {
-
 				shown = {nodes:{},edges:{}};
 				hidden = {nodes:{},edges:{}};
 				var crawlerResults = JSON.parse(result).result;
@@ -115,8 +120,22 @@ function getCookie(){
 				hidden = ds[1];
 				keys = ds[2];
 				setCookie(startingURL, recursionLimit, searchType);
+				crawlButton.disabled = false;
+				crawlButton.innerHTML = "Crawl!";
+				document.getElementById("starting-url").disabled = false;
+				document.getElementById("recursion-limit").disabled = false;
+				searchElement.disabled = false;
 			},
+			error: function(jqXHR, stats, errThrown){
+				crawlButton.disabled = false;
+				crawlButton.innerHTML = "Crawl!";
+				document.getElementById("starting-url").disabled = false;
+				document.getElementById("recursion-limit").disabled = false;
+				searchElement.disabled = false;
+			 },
+
 		})
+
 	}
 
   var Renderer = function(canvas){
