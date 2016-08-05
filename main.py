@@ -4,6 +4,7 @@ import json
 import time
 from flask import Flask, render_template, request
 from google.appengine.api import urlfetch
+from google.appengine.ext import ndb
 import lxml
 from lxml import html
 from Queue import *
@@ -102,6 +103,7 @@ def breadthFirstCrawl(startingURL, recursionLimit):
 
     # initialize the queue
     queue.put((0, {'parent': None, 'child': startingURL, 'level': 0}))
+    logEntryKey = crawlLogger(None, None, None, False)
 
     while not queue.empty():
         # get next item in priority queue
@@ -124,6 +126,7 @@ def breadthFirstCrawl(startingURL, recursionLimit):
             crawler_jobs = []
             for link in this_level:
                 print "BFS Level " + str(current_depth) + " " + link['child']
+                crawlLogger(logEntryKey,link['child'], current_depth, False)
                 printElapsedTime(start_time)
 
                 # create thread for each link
@@ -136,6 +139,7 @@ def breadthFirstCrawl(startingURL, recursionLimit):
             for thread in crawler_jobs:
                 thread.join()
 
+    crawlLogger(logEntryKey, None, None, True)
     return bfs_result_array
 
 #################################
@@ -158,16 +162,46 @@ def depthFirstCrawl(startingURL, recursionLimit):
 
     # initialize stack
     stack = [{'parent': None, 'child': startingURL, 'level': 0}]
+    logEntryKey = crawlLogger(None, None, None, False)
 
     crawler_jobs = []
     while len(stack) > 0:
         next = stack.pop()
         if next['level'] <= recursionLimit:
             print "DFS Level " + str(next['level']) + " " + next['child']
+            crawlLogger(logEntryKey,next['child'], next['level'], False)
             printElapsedTime(start_time)
             extendDFSResults(next, stack, dfs_result_array)
 
+    crawlLogger(logEntryKey, None, None, True)
     return dfs_result_array
+
+
+#################################
+# Logging Function
+#################################
+class LogEntry(ndb.Model):
+    crawlFinished = ndb.BooleanProperty()
+    record = ndb.PickleProperty(default={})
+
+def crawlLogger(key, link, level, isFinished):
+    if isFinished:
+        logEntry = key.get()
+        logEntry.crawlFinished = True
+        logEntry.put()
+        return
+    if key is None:
+        logEntry = LogEntry(crawlFinished=isFinished)
+        logEntry_key = logEntry.put()
+        return logEntry_key
+    else:
+        logEntry = key.get()
+        if level in logEntry.record:
+            logEntry.record[level].append(link)
+        else:
+            logEntry.record[level] = [link]
+        logEntry.put()
+        return
 
 
 #################################
