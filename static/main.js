@@ -22,13 +22,13 @@ function nodeColors(levels){
  	var addObj = function(ps,obj,numEdges){
  		// counter for numEdges
 		var c = 0;
-
 		// find edges to plot onto graph
-		while( c < numEdges){
-
+		while( c < numEdges && keys.length != 0){
 			// get key first element from queue
-			var key = keys.shift();
-			keys = keys.concat(Object.keys(obj.edges[key]));
+			var key = keys[0];
+			try{
+				keys = keys.concat(Object.keys(obj.edges[key]));
+			} catch(e){console.log("no more nodes to add!");}
 			
 			shown.edges[key]= (typeof shown.edges[key] == "undefined") ? {} : shown.edges[key];
 			shown.nodes[key] = (typeof shown.nodes[key] == "undefined") ? JSON.parse(JSON.stringify(obj.nodes[key])) : shown.nodes[key];
@@ -38,7 +38,9 @@ function nodeColors(levels){
 					c += 1;
 					shown.edges[key][child] = JSON.parse(JSON.stringify(obj.edges[key][child]));
 					delete hidden.edges[key][child];
-					shown.nodes[child] = JSON.parse(JSON.stringify(obj.nodes[child]));
+					try{
+						shown.nodes[child] = JSON.parse(JSON.stringify(obj.nodes[child]));
+					}catch(e){}
 
 				}
 
@@ -49,6 +51,7 @@ function nodeColors(levels){
 			// Trim dangling edges
 			if ($.isEmptyObject(hidden.edges[key])){
 				delete hidden.edges[key];
+				keys.shift();
 				//break;
 			}
 		}
@@ -83,7 +86,6 @@ function nodeColors(levels){
 
 				shown = {nodes:{},edges:{}};
 				hidden = {nodes:{},edges:{}};
-				childkeys = [];
 				var crawlerResults = JSON.parse(result).result;
 				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
 					return crawlerResults.nodes[value].level == 1;
@@ -91,18 +93,10 @@ function nodeColors(levels){
 
 				keys.push(rootKey);
 				hidden = JSON.parse(JSON.stringify(crawlerResults));
-				console.log("Original");
-				console.log(JSON.stringify(crawlerResults));
 				var ds = addObj(ps,crawlerResults, 3);
 				shown = ds[0];
 				hidden = ds[1];
 				keys = ds[2];
-				console.log("shown:");
-				console.log(shown);
-				console.log("hidden: ");
-				console.log(hidden);
-				console.log("keys: ");
-				console.log(keys);
 			}
 		})
 	}
@@ -230,12 +224,11 @@ function nodeColors(levels){
 					scrollUp += 1;
 					if (scrollUp == 2){
 						scrollUp = 0;
-						//if (!$.isEmptyObject(hidden.edges[key])){
-							var p = {data:particleSystem};
-							addObj(p, hidden, 1);
-						//} else {
-						//	console.log("All nodes graphed!");
-						//}
+						var p = {data:particleSystem};
+						var ds = addObj(p, hidden, 1);
+						shown = ds[0];
+						hidden = ds[1];
+						keys = ds[2];
 					}
 				}
 				return false;
