@@ -19,6 +19,25 @@ function nodeColors(levels){
 	var keys = [];
 	var rootKey, noEdges;
 
+	var clearCookie = function(){
+		document.cookie = "";
+	}
+
+	var setCookie = function(url,recursionLimit,type,shown, hidden, keys){
+		var cString = "url=====" + url +";recursionLimit=====" + recursionLimit + ";type=====" + type + ";shown=====" + shown + ";hidden=====" + hidden + ";keys=====" + keys + ";";
+		document.cookie += escape(cString);
+	}
+
+	var getCookie = function(url,recursionLimit, type){
+		var ca = unescape(document.cookie).split(';');
+		for (var i = 0 ; i < ca.length; i = i + 6){
+			if (ca[i].split("=====")[1] == url && ca[i+1].split("=====")[1] == recursionLimit && ca[i+2].split("=====")[1] == type){  
+				return [JSON.parse(ca[i+3].split("=====")[1]), JSON.parse(ca[i+4].split("=====")[1]), JSON.parse(ca[i+5].split("=====")[1])];
+			}
+		}
+		return "";
+	}
+
  	var addObj = function(ps,obj,numEdges){
  		// counter for numEdges
 		var c = 0;
@@ -84,20 +103,29 @@ function nodeColors(levels){
 					"searchType": searchType},
 			success: function(result) {
 
-				shown = {nodes:{},edges:{}};
-				hidden = {nodes:{},edges:{}};
-				var crawlerResults = JSON.parse(result).result;
-				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
-					return crawlerResults.nodes[value].level == 1;
-				})[0];
-
-				keys.push(rootKey);
-				hidden = JSON.parse(JSON.stringify(crawlerResults));
-				var ds = addObj(ps,crawlerResults, 3);
+				// check for pre-existing values in cookie
+				var cookie = getCookie(startingURL, recursionLimit, searchType);
+				if (cookie.length != 0){
+					shown = cookie[0];
+					hidden = cookie[1];
+					keys = cookie[2];
+					var ds = addObj(ps,shown, 3);
+				} else {
+					shown = {nodes:{},edges:{}};
+					hidden = {nodes:{},edges:{}};
+					var crawlerResults = JSON.parse(result).result;
+					rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+						return crawlerResults.nodes[value].level == 1;
+					})[0];
+					keys.push(rootKey);
+					hidden = JSON.parse(JSON.stringify(crawlerResults));
+					var ds = addObj(ps,crawlerResults, 3);
+					setCookie(startingURL, recursionLimit, searchType, JSON.stringify(shown), JSON.stringify(hidden), JSON.stringify(keys));
+				}
 				shown = ds[0];
 				hidden = ds[1];
 				keys = ds[2];
-			}
+			},
 		})
 	}
 
