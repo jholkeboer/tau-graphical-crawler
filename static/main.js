@@ -10,6 +10,15 @@ function nodeColors(levels){
 	return colors;
 }
 
+function getCookie(){
+		var ca = unescape(document.cookie).split(';');
+		if (ca.length >= 3){
+			return [ca[0].split("=====")[1], ca[1].split("=====")[1], ca[2].split("=====")[1]];
+		} else {
+			return "";
+		}
+}
+
 (function($){
 
 	// declare branches shown/hidden
@@ -23,19 +32,9 @@ function nodeColors(levels){
 		document.cookie = "";
 	}
 
-	var setCookie = function(url,recursionLimit,type,shown, hidden, keys){
-		var cString = "url=====" + url +";recursionLimit=====" + recursionLimit + ";type=====" + type + ";shown=====" + shown + ";hidden=====" + hidden + ";keys=====" + keys + ";";
-		document.cookie += escape(cString);
-	}
-
-	var getCookie = function(url,recursionLimit, type){
-		var ca = unescape(document.cookie).split(';');
-		for (var i = 0 ; i < ca.length; i = i + 6){
-			if (ca[i].split("=====")[1] == url && ca[i+1].split("=====")[1] == recursionLimit && ca[i+2].split("=====")[1] == type){  
-				return [JSON.parse(ca[i+3].split("=====")[1]), JSON.parse(ca[i+4].split("=====")[1]), JSON.parse(ca[i+5].split("=====")[1])];
-			}
-		}
-		return "";
+	var setCookie = function(url,recursionLimit,type){
+		var cString = "url=====" + url +";recursionLimit=====" + recursionLimit + ";type=====" + type + ";";
+		document.cookie = escape(cString);
 	}
 
  	var addObj = function(ps,obj,numEdges){
@@ -103,28 +102,19 @@ function nodeColors(levels){
 					"searchType": searchType},
 			success: function(result) {
 
-				// check for pre-existing values in cookie
-				var cookie = getCookie(startingURL, recursionLimit, searchType);
-				if (cookie.length != 0){
-					shown = cookie[0];
-					hidden = cookie[1];
-					keys = cookie[2];
-					var ds = addObj(ps,shown, 3);
-				} else {
-					shown = {nodes:{},edges:{}};
-					hidden = {nodes:{},edges:{}};
-					var crawlerResults = JSON.parse(result).result;
-					rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
-						return crawlerResults.nodes[value].level == 1;
-					})[0];
-					keys.push(rootKey);
-					hidden = JSON.parse(JSON.stringify(crawlerResults));
-					var ds = addObj(ps,crawlerResults, 3);
-					setCookie(startingURL, recursionLimit, searchType, JSON.stringify(shown), JSON.stringify(hidden), JSON.stringify(keys));
-				}
+				shown = {nodes:{},edges:{}};
+				hidden = {nodes:{},edges:{}};
+				var crawlerResults = JSON.parse(result).result;
+				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+					return crawlerResults.nodes[value].level == 1;
+				})[0];
+				keys.push(rootKey);
+				hidden = JSON.parse(JSON.stringify(crawlerResults));
+				var ds = addObj(ps,crawlerResults, 3);
 				shown = ds[0];
 				hidden = ds[1];
 				keys = ds[2];
+				setCookie(startingURL, recursionLimit, searchType);
 			},
 		})
 	}
@@ -291,6 +281,16 @@ function nodeColors(levels){
   }    
 
   $(document).ready(function(){
+
+	// check for pre-existing values in cookie
+	var cookie = getCookie();
+	if (cookie.length >= 3){
+		document.getElementById("starting-url").value = cookie[0];
+		document.getElementById("recursion-limit").value = cookie[1];
+		var searchElement = document.getElementById("search-type");
+		searchElement.options[searchElement.selectedIndex].value = cookie[2];
+	}
+
 	var sys = arbor.ParticleSystem({friction:0.5, stiffness:25, repulsion:10, fps:100, dt:0.01, precision: 0.1})
     sys.parameters({gravity:false}) // use center-gravity to make the graph settle nicely (ymmv)
     sys.renderer = Renderer("#viewport") // our newly created renderer will have its .init() method called shortly by sys...
