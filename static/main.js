@@ -1,4 +1,4 @@
-function nodeColors(levels){
+/*function nodeColors(levels){
 	var partition = (510 / (levels)).toPrecision(3);
 	var colors = []
 	for (var i = 0 ; i < levels+1 ; i++){
@@ -8,7 +8,7 @@ function nodeColors(levels){
 		colors.push({"r":r,"g":0,"b":b});
 	}
 	return colors;
-}
+}*/
 
 function getCookie(){
 		var ca = unescape(document.cookie).split(';');
@@ -27,6 +27,16 @@ function getCookie(){
 	// queue to track which key was last plotted
 	var keys = [];
 	var rootKey, noEdges;
+
+	var searchForKeyword = function(ps){
+		var word = document.getElementById("keyword-search").value;
+		ps.data.eachNode(function(node,pt){
+			node.data.color = "normal";
+			if (node.name.indexOf(word) != -1 || node.data.name.indexOf(word) != -1){
+				node.data.color = "fuchsia";
+			}
+		});
+	}
 
 	var clearCookie = function(){
 		document.cookie = "";
@@ -49,7 +59,9 @@ function getCookie(){
 			} catch(e){console.log("no more nodes to add!");}
 			
 			shown.edges[key]= (typeof shown.edges[key] == "undefined") ? {} : shown.edges[key];
-			shown.nodes[key] = (typeof shown.nodes[key] == "undefined") ? JSON.parse(JSON.stringify(obj.nodes[key])) : shown.nodes[key];
+			try{
+				shown.nodes[key] = (typeof shown.nodes[key] == "undefined") ? JSON.parse(JSON.stringify(obj.nodes[key])) : shown.nodes[key];
+			} catch(e){console.log("no more nodes to add!");}
 
 			for ( var child in obj.edges[key] ){
 				if (obj.edges[key].hasOwnProperty(child)){
@@ -200,16 +212,20 @@ function getCookie(){
           // pt:   {x:#, y:#}  node position in screen coords
 
 			node.fixed = true;
-			var c = nodeColors(depth);
-			var l = parseInt(node.data.level)-1;
-
-			if (l >= 0 && typeof c[l] != "undefined"){
-				ctx.fillStyle = "rgba(" + c[l].r + "," + c[l].g + "," + c[l].b +",.8)";
+			var radius;
+			if (node.data.color == "fuchsia"){
+				ctx.fillStyle = "rgba(255,0,255,1)";
+				radius = 10;
+			} else if (node.data.level == 1){
+				ctx.fillStyle = "red";
+				radius = 5;
 			} else {
 				ctx.fillStyle = "grey";
+				radius = 5;
 			}
+		
 			ctx.beginPath();
-			ctx.arc(pt.x,pt.y,5,0,2.0* Math.PI);
+			ctx.arc(pt.x,pt.y,radius,0,2.0* Math.PI);
 			ctx.closePath();
 			ctx.fill();
 		  })    			
@@ -219,8 +235,7 @@ function getCookie(){
 		  var nearest = null;
 		  var scrollUp = 0;
 		  var scrollDown = 0;
-        // set up a handler object that will initially listen for mousedowns then
-        // for moves and mouseups while dragging
+
         var handler = {
 
           clicked:function(e){
@@ -244,9 +259,14 @@ function getCookie(){
 
 				if (nearest && nearest.node != null){
 					var link = document.createElement("a")
-					link.text = nearest.node.name
-					link.href = nearest.node.name
-					lbl.append(link)
+					if (typeof nearest.node.data.name != "undefined"){
+						link.text = nearest.node.data.name;
+						link.href = nearest.node.name
+					} else {
+						link.text = nearest.node.name;
+						link.href = nearest.node.name;
+					}
+					lbl.append(link);
 				}
 				return false
 		    },
@@ -314,6 +334,7 @@ function getCookie(){
     sys.parameters({gravity:false}) // use center-gravity to make the graph settle nicely (ymmv)
     sys.renderer = Renderer("#viewport") // our newly created renderer will have its .init() method called shortly by sys...
 	 $("#submit-crawl").click(sys, submitCrawl);
+	 $("#btn-keyword-search").click(sys, searchForKeyword);
 		
   })
 
