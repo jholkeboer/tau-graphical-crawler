@@ -12,8 +12,10 @@
 
 function getCookie(){
 		var ca = unescape(document.cookie).split(';');
-		if (ca.length >= 3){
+		if (ca.length == 3){
 			return [ca[0].split("=====")[1], ca[1].split("=====")[1], ca[2].split("=====")[1]];
+		} else if (ca.length >= 4){
+			return [ca[0].split("=====")[1], ca[1].split("=====")[1], ca[2].split("=====")[1],ca[3].split("=====")[1]];
 		} else {
 			return "";
 		}
@@ -27,23 +29,35 @@ function getCookie(){
 	// queue to track which key was last plotted
 	var keys = [];
 	var rootKey, noEdges;
+	var search = 0;
 
 	var searchForKeyword = function(ps){
-		var word = document.getElementById("keyword-search").value;
+
+		search += 1;
+		var startingURL = document.getElementById("starting-url").value;
+		var recursionLimit = document.getElementById("recursion-limit").value;
+		var searchElement = document.getElementById("search-type");
+		var searchType = searchElement.options[searchElement.selectedIndex].value;
+		var word = document.getElementById("keyword-search").value.toLowerCase();
+		setCookie(startingURL, recursionLimit, searchType, word);
+
 		ps.data.eachNode(function(node,pt){
 			node.data.color = "normal";
-			if (node.name.indexOf(word) != -1 || node.data.name.indexOf(word) != -1){
+			var title = (typeof node.data.name === "undefined") ? "" : node.data.name.toLowerCase();
+			var link = node.name.toLowerCase();
+			if (link.indexOf(word) != -1 || title.indexOf(word) != -1){
 				node.data.color = "fuchsia";
 			}
 		});
+
 	}
 
 	var clearCookie = function(){
 		document.cookie = "";
 	}
 
-	var setCookie = function(url,recursionLimit,type){
-		var cString = "url=====" + url +";recursionLimit=====" + recursionLimit + ";type=====" + type + ";";
+	var setCookie = function(url,recursionLimit,type,keyword){
+		var cString = "url=====" + url +";recursionLimit=====" + recursionLimit + ";type=====" + type + ";keyword=====" + keyword + ";";
 		document.cookie = escape(cString);
 	}
 
@@ -90,7 +104,7 @@ function getCookie(){
 		ps.data.merge(shown);
 
 		// track state of graph
-		return [shown,hidden,keys];
+		return [shown,hidden,keys,ps];
 	}
 
  	var clearCanvas = function(ps){
@@ -106,6 +120,7 @@ function getCookie(){
 		var searchElement = document.getElementById("search-type");
 		var searchType = searchElement.options[searchElement.selectedIndex].value;
 		var crawlButton = document.getElementById("submit-crawl");
+		var keywordSearch = document.getElementById("keyword-search").value;
 		crawlButton.disabled = true;
 		crawlButton.innerHTML = "Please wait, loading...";
 		document.getElementById("starting-url").disabled = true;
@@ -131,7 +146,8 @@ function getCookie(){
 				shown = ds[0];
 				hidden = ds[1];
 				keys = ds[2];
-				setCookie(startingURL, recursionLimit, searchType);
+				ps = ds[3];
+				setCookie(startingURL, recursionLimit, searchType, keywordSearch);
 				crawlButton.disabled = false;
 				crawlButton.innerHTML = "Crawl!";
 				document.getElementById("starting-url").disabled = false;
@@ -286,6 +302,7 @@ function getCookie(){
 						shown = ds[0];
 						hidden = ds[1];
 						keys = ds[2];
+						p = ds[3];
 					}
 				}
 				return false;
@@ -328,6 +345,8 @@ function getCookie(){
 		document.getElementById("recursion-limit").value = cookie[1];
 		var searchElement = document.getElementById("search-type");
 		searchElement.options[searchElement.selectedIndex].value = cookie[2];
+		if (typeof cookie[3] != "undefined")
+			document.getElementById("keyword-search").value = cookie[3];
 	}
 
 	var sys = arbor.ParticleSystem({friction:0.5, stiffness:25, repulsion:10, fps:100, dt:0.01, precision: 0.1})
