@@ -58,6 +58,8 @@ def formatResult(result):
         if link['parent'] not in new_result['edges']:
             new_result['edges'][link['parent']] = {}
         new_result['edges'][link['parent']].update({link['child']: {}})
+        # added for coloring
+        #new_result['nodes'][link['child']] = {'level':link['level']+1}
 
         if link['level'] > max_level:
             max_level += 1
