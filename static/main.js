@@ -113,6 +113,15 @@ function getCookie(){
 		});
 	}
 
+	function generateJobID(length) {
+		var characters = "qwertyuiopasdfghjklzxcvbnm1234567890";
+		var output = "";
+		for (var i = 0; i < length; i++) {
+			output += characters[parseInt((Math.random() * characters.length))];
+		}
+		return output;
+	}
+
 	var submitCrawl = function(ps){
 		clearCanvas(ps);
 		var startingURL = document.getElementById("starting-url").value;
@@ -127,43 +136,89 @@ function getCookie(){
 		document.getElementById("recursion-limit").disabled = true;
 		searchElement.disabled = true;
 
+		var jobID = generateJobID(25);
+
 		$.ajax({
-			url: "/crawl",
+			url: "/start_crawl",
 			type: "POST",
-			data: {"startingURL": startingURL,
-					"recursionLimit": recursionLimit,
-					"searchType": searchType},
-			success: function(result) {
-				shown = {nodes:{},edges:{}};
-				hidden = {nodes:{},edges:{}};
-				var crawlerResults = JSON.parse(result).result;
-				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
-					return crawlerResults.nodes[value].level == 1;
-				})[0];
-				keys.push(rootKey);
-				hidden = JSON.parse(JSON.stringify(crawlerResults));
-				var ds = addObj(ps,crawlerResults, 3);
-				shown = ds[0];
-				hidden = ds[1];
-				keys = ds[2];
-				ps = ds[3];
-				setCookie(startingURL, recursionLimit, searchType, keywordSearch);
-				crawlButton.disabled = false;
-				crawlButton.innerHTML = "Crawl!";
-				document.getElementById("starting-url").disabled = false;
-				document.getElementById("recursion-limit").disabled = false;
-				searchElement.disabled = false;
+			data: {
+				"startingURL": startingURL,
+				"recursionLimit": recursionLimit,
+				"searchType": searchType,
+				"keyword": keywordSearch,
+				"jobID": jobID
 			},
+			success: function(result) {
+				// shown = {nodes:{},edges:{}};
+				// hidden = {nodes:{},edges:{}};
+				// var crawlerResults = JSON.parse(result).result;
+				// rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+				// 	return crawlerResults.nodes[value].level == 1;
+				// })[0];
+				// keys.push(rootKey);
+				// hidden = JSON.parse(JSON.stringify(crawlerResults));
+				// var ds = addObj(ps,crawlerResults, 3);
+				// shown = ds[0];
+				// hidden = ds[1];
+				// keys = ds[2];
+				// ps = ds[3];
+				// setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+				// crawlButton.disabled = false;
+				// crawlButton.innerHTML = "Crawl!";
+				// document.getElementById("starting-url").disabled = false;
+				// document.getElementById("recursion-limit").disabled = false;
+				// searchElement.disabled = false;	
+				console.log("Crawling finished for " + jobID);
+			},		
 			error: function(jqXHR, stats, errThrown){
 				crawlButton.disabled = false;
 				crawlButton.innerHTML = "Crawl!";
 				document.getElementById("starting-url").disabled = false;
 				document.getElementById("recursion-limit").disabled = false;
 				searchElement.disabled = false;
-			 },
+			 }		
+		});
 
-		})
+		var done = false;
+		var crawler_results = {}
+		setInterval(checkStatus, 5000);
+		function checkStatus() {
+				$.ajax({
+					url: "/status_update",
+					type: "POST",
+					data: {
+						"jobID": jobID
+					},
+					success: function(result) {
+						$.extend(crawler_results, JSON.parse(result).payload);
 
+						shown = {nodes:{},edges:{}};
+						hidden = {nodes:{},edges:{}};
+						// var crawlerResults = JSON.parse(result).result;
+						rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+							return crawlerResults.nodes[value].level == 1;
+						})[0];
+						keys.push(rootKey);
+						hidden = JSON.parse(JSON.stringify(crawlerResults));
+						var ds = addObj(ps,crawlerResults, 3);
+						shown = ds[0];
+						hidden = ds[1];
+						keys = ds[2];
+						ps = ds[3];
+						setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+						crawlButton.disabled = false;
+						crawlButton.innerHTML = "Crawl!";
+						document.getElementById("starting-url").disabled = false;
+						document.getElementById("recursion-limit").disabled = false;
+						searchElement.disabled = false;
+					},
+					error: function(jqXHR, stats, errThrown) {
+						console.log("Status update error")
+					}
+				});
+				return false;
+		}
+		checkStatus(done)
 	}
 
   var Renderer = function(canvas){
