@@ -23,37 +23,13 @@
 				</p>
 			</form>
 			<button id="submit-crawl">Crawl!</button>
-			<p><label id="mouseover-link">Traces:</label>
-			<p><input type="text" id="keyword-search" size="64" placeholder="graph keyword search"/><input type="button" id="btn-keyword-search" value="search"></input>
 		</p>
-		<p><canvas id="viewport" width="800" height="600"></canvas>
+		<p><canvas id="viewport" width="800" height="600" style="border:0.5px solid grey"></canvas>
+		<p><label id="mouseover-link">Site:</label>
+		<p><input type="text" id="keyword-search" size="64" placeholder="graph keyword search"/><input type="button" id="btn-keyword-search" value="search"></input>
 		<script src="static/arbor/lib/arbor.js"></script>
 		<script src="static/arbor/lib/arbor-tween.js"></script>
 		<script src="static/arbor/lib/arbor-graphics.js"></script>
 		<script src="static/main.js"></script>
 	</body>
 </html>
-
-<!--
-<script type="text/javascript">
-	function submitCrawl() {
-		var startingURL = document.getElementById("starting-url").value;
-		var recursionLimit = document.getElementById("recursion-limit").value;
-		var searchElement = document.getElementById("search-type");
-		var searchType = searchElement.options[searchElement.selectedIndex].value;
-
-		$.ajax({
-			url: "/crawl",
-			type: "POST",
-			data: {"startingURL": startingURL,
-				   "recursionLimit": recursionLimit,
-				   "searchType": searchType},
-			success: function(result) {
-				console.log(result);
-			}
-		})
-	}
-
-	document.getElementById("submit-crawl").addEventListener("click", submitCrawl, false);
-</script>
-!-->
