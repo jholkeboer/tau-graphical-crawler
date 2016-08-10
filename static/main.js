@@ -113,6 +113,60 @@ function getCookie(){
 		});
 	}
 
+	function generateJobID(length) {
+		var characters = "qwertyuiopasdfghjklzxcvbnm1234567890";
+		var output = "";
+		for (var i = 0; i < length; i++) {
+			output += characters[parseInt((Math.random() * characters.length))];
+		}
+		return output;
+	}
+
+	function statusChecker(jobID) {
+		$.ajax({
+			url: "/status_update",
+			type: "POST",
+			data: {
+				"jobID": jobID
+			},
+			jobID: jobID,
+			success: function(results) {
+				var res = JSON.parse(results);
+				console.log(res);
+
+				var new_results = res.result;
+				console.log("link count");
+				console.log(new_results.length)
+
+				var scrollbox = document.getElementById("url-scrollbox");
+				var crawlCount = document.getElementById('crawl-count');
+				crawlCount.innerHTML = parseInt(crawlCount.innerHTML) + new_results.length;
+
+				if (res.done != true) {
+					if (new_results.length > 0) {
+						var urlStrings = new_results.reduce(
+							function(prev, next) {
+								return next["child"] + "<br>" + prev;
+							}
+						)
+						scrollbox.innerHTML = urlStrings + scrollbox.innerHTML;
+					}
+				}
+
+				if (res.done != true) {
+					var waitToRequest = function(job) {
+						setTimeout(function() {statusChecker(job)}, 3000);
+					}
+					waitToRequest(this.jobID);
+				} 
+
+			},
+			error: function(jqXHR, stats, errThrown) {
+				console.log("Status update error")
+			}
+		});
+	}
+
 	var submitCrawl = function(ps){
 		clearCanvas(ps);
 		var startingURL = document.getElementById("starting-url").value;
@@ -126,14 +180,28 @@ function getCookie(){
 		document.getElementById("starting-url").disabled = true;
 		document.getElementById("recursion-limit").disabled = true;
 		searchElement.disabled = true;
+		setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+		document.getElementById("crawl-count").innerHTML = "0";
+		document.getElementById("partial-results").style.display = "block";
+		document.getElementById("viewport").style.display = "none";
+		document.getElementById("show-site").style.display = "none";
+
+
+		var jobID = generateJobID(25);
 
 		$.ajax({
-			url: "/crawl",
+			url: "/start_crawl",
 			type: "POST",
-			data: {"startingURL": startingURL,
-					"recursionLimit": recursionLimit,
-					"searchType": searchType},
+			data: {
+				"startingURL": startingURL,
+				"recursionLimit": recursionLimit,
+				"searchType": searchType,
+				"keyword": keywordSearch,
+				"jobID": jobID
+			},
 			success: function(result) {
+				document.getElementById("viewport").style.display = "block";
+				document.getElementById("show-site").style.display = "block";
 				shown = {nodes:{},edges:{}};
 				hidden = {nodes:{},edges:{}};
 				var crawlerResults = JSON.parse(result).result;
@@ -152,17 +220,21 @@ function getCookie(){
 				crawlButton.innerHTML = "Crawl!";
 				document.getElementById("starting-url").disabled = false;
 				document.getElementById("recursion-limit").disabled = false;
-				searchElement.disabled = false;
-			},
+				searchElement.disabled = false;	
+				console.log("Crawling finished for " + jobID);
+				document.getElementById("url-scrollbox").innerHTML = "";
+				document.getElementById("partial-results").style.display = "none";
+			},		
 			error: function(jqXHR, stats, errThrown){
 				crawlButton.disabled = false;
 				crawlButton.innerHTML = "Crawl!";
 				document.getElementById("starting-url").disabled = false;
 				document.getElementById("recursion-limit").disabled = false;
 				searchElement.disabled = false;
-			 },
+			 }		
+		});
 
-		})
+		statusChecker(jobID);
 
 	}
 

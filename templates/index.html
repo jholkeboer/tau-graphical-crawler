@@ -4,6 +4,7 @@
 		<title>Tau Web-Crawler</title>
 	</head>
 	<body>
+		<h2>Tau Graphical Web Crawler</h2>
 		<p>
 			<form id="crawler-input-form">
 				<p>
@@ -12,7 +13,11 @@
 				</p>
 				<p>
 					<label>Recursion Limit</label>
-					<input type="text" id="recursion-limit"/>
+					<select id="recursion-limit" form="crawler-input-form">
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+					</select>
 				</p>
 				<p>
 					<label>Search Type</label>
@@ -21,12 +26,17 @@
 						<option value="dfs">Depth-first</option>
 					</select>
 				</p>
+				<p><input type="text" id="keyword-search" size="64" placeholder="Stop if keyword found (optional)"/><input type="button" id="btn-keyword-search" value="Search graph"></input>
 			</form>
 			<button id="submit-crawl">Crawl!</button>
 		</p>
-		<p><canvas id="viewport" width="800" height="600" style="border:0.5px solid grey"></canvas>
-		<p><label id="mouseover-link">Site:</label>
-		<p><input type="text" id="keyword-search" size="64" placeholder="graph keyword search"/><input type="button" id="btn-keyword-search" value="search"></input>
+		<p>
+			<div id="partial-results" style="display: none">Pages crawled: <div id="crawl-count">0</div>
+				<div id="url-scrollbox" style="width: 600px; height: 300px; overflow: auto"></div>
+			</div>
+		</p>
+		<p id="show-site" style="display: none"><label id="mouseover-link">Site:</label>
+		<p><canvas id="viewport" width="800" height="600" style="border:0.5px solid grey; display: none"></canvas>
 		<script src="static/arbor/lib/arbor.js"></script>
 		<script src="static/arbor/lib/arbor-tween.js"></script>
 		<script src="static/arbor/lib/arbor-graphics.js"></script>
