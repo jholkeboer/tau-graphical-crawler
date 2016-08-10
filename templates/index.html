@@ -4,6 +4,7 @@
 		<title>Tau Web-Crawler</title>
 	</head>
 	<body>
+		<h2>Tau Graphical Web Crawler</h2>
 		<p>
 			<form id="crawler-input-form">
 				<p>
@@ -21,15 +22,17 @@
 						<option value="dfs">Depth-first</option>
 					</select>
 				</p>
+				<p><input type="text" id="keyword-search" size="64" placeholder="Stop if keyword found (optional)"/><input type="button" id="btn-keyword-search" value="search"></input>
 			</form>
 			<button id="submit-crawl">Crawl!</button>
 		</p>
-		<p><input type="text" id="keyword-search" size="64" placeholder="graph keyword search"/><input type="button" id="btn-keyword-search" value="search"></input>
-		<p>Crawling:
-			<div id="partial-results"></div>
+		<p>
+			<div id="partial-results" style="display: none">Pages crawled: <div id="crawl-count">0</div>
+				<div id="url-scrollbox" style="width: 600px; height: 300px; overflow: auto"></div>
+			</div>
 		</p>
-		<p><canvas id="viewport" width="800" height="600" style="border:0.5px solid grey"></canvas>
-		<p><label id="mouseover-link">Site:</label>
+		<p id="show-site" style="display: none"><label id="mouseover-link">Site:</label>
+		<p><canvas id="viewport" width="800" height="600" style="border:0.5px solid grey; display: none"></canvas>
 		<script src="static/arbor/lib/arbor.js"></script>
 		<script src="static/arbor/lib/arbor-tween.js"></script>
 		<script src="static/arbor/lib/arbor-graphics.js"></script>

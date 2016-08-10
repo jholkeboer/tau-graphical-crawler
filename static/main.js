@@ -138,8 +138,10 @@ function getCookie(){
 				console.log("link count");
 				console.log(new_results.length)
 
-				var partialResults = document.getElementById("partial-results");
-				var urlHTML = '';
+				var scrollbox = document.getElementById("url-scrollbox");
+				var crawlCount = document.getElementById('crawl-count');
+				crawlCount.innerHTML = parseInt(crawlCount.innerHTML) + new_results.length;
+
 				if (res.done != true) {
 					if (new_results.length > 0) {
 						var urlStrings = new_results.reduce(
@@ -147,7 +149,7 @@ function getCookie(){
 								return next["child"] + "<br>" + prev;
 							}
 						)
-						partialResults.innerHTML = urlStrings + partialResults.innerHTML;
+						scrollbox.innerHTML = urlStrings + scrollbox.innerHTML;
 					}
 				}
 
@@ -179,6 +181,11 @@ function getCookie(){
 		document.getElementById("recursion-limit").disabled = true;
 		searchElement.disabled = true;
 		setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+		document.getElementById("crawl-count").innerHTML = "0";
+		document.getElementById("partial-results").style.display = "block";
+		document.getElementById("viewport").style.display = "none";
+		document.getElementById("show-site").style.display = "none";
+
 
 		var jobID = generateJobID(25);
 
@@ -193,6 +200,8 @@ function getCookie(){
 				"jobID": jobID
 			},
 			success: function(result) {
+				document.getElementById("viewport").style.display = "block";
+				document.getElementById("show-site").style.display = "block";
 				shown = {nodes:{},edges:{}};
 				hidden = {nodes:{},edges:{}};
 				var crawlerResults = JSON.parse(result).result;
@@ -213,7 +222,8 @@ function getCookie(){
 				document.getElementById("recursion-limit").disabled = false;
 				searchElement.disabled = false;	
 				console.log("Crawling finished for " + jobID);
-				document.getElementById("partial-results").innerHTML = "";
+				document.getElementById("url-scrollbox").innerHTML = "";
+				document.getElementById("partial-results").style.display = "none";
 			},		
 			error: function(jqXHR, stats, errThrown){
 				crawlButton.disabled = false;
@@ -223,10 +233,6 @@ function getCookie(){
 				searchElement.disabled = false;
 			 }		
 		});
-
-		// var done = false;
-		var crawler_results = {nodes: {}, edges: {}}
-		// setInterval(checkStatus, 5000);
 
 		statusChecker(jobID);
 
