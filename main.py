@@ -61,8 +61,6 @@ def formatResult(result):
         if link['parent'] not in new_result['edges']:
             new_result['edges'][link['parent']] = {}
         new_result['edges'][link['parent']].update({link['child']: {}})
-        # added for coloring
-        #new_result['nodes'][link['child']] = {'level':link['level']+1}
 
         if link['level'] > max_level:
             max_level += 1
@@ -132,7 +130,6 @@ def breadthFirstCrawl(startingURL, recursionLimit, jobID):
             crawler_jobs = []
             for link in this_level:
                 print "BFS Level " + str(current_depth) + " " + link['child']
-                # crawlLogger(logEntryKey,link['child'], current_depth, False)
                 printElapsedTime(start_time)
 
                 # create thread for each link
@@ -145,7 +142,6 @@ def breadthFirstCrawl(startingURL, recursionLimit, jobID):
             for thread in crawler_jobs:
                 thread.join()
 
-    # crawlLogger(logEntryKey, None, None, True)
     writeCrawlLog([], True, jobID)
     return bfs_result_array
 
@@ -170,7 +166,6 @@ def depthFirstCrawl(startingURL, recursionLimit, jobID):
 
     # initialize stack
     stack = [{'parent': None, 'child': startingURL, 'level': 0}]
-    # logEntryKey = crawlLogger(None, None, None, False)
 
     crawler_jobs = []
     while len(stack) > 0:
@@ -180,7 +175,6 @@ def depthFirstCrawl(startingURL, recursionLimit, jobID):
             printElapsedTime(start_time)
             extendDFSResults(next, stack, dfs_result_array, jobID)
 
-    # crawlLogger(logEntryKey, None, None, True)
     writeCrawlLog([], True, jobID)
     return dfs_result_array
 
@@ -194,24 +188,24 @@ def writeCrawlLog(links, isFinished, jobID):
     logEntry.put()
 
 
-def crawlLogger(key, link, level, isFinished, jobID):
-    if isFinished:
-        logEntry = key.get()
-        logEntry.crawlFinished = True
-        logEntry.put()
-        return
-    if key is None:
-        logEntry = LogEntry(crawlFinished=isFinished, jobID=jobID)
-        logEntry_key = logEntry.put()
-        return logEntry_key
-    else:
-        logEntry = key.get()
-        if level in logEntry.record:
-            logEntry.record[level].append(link)
-        else:
-            logEntry.record[level] = [link]
-        logEntry.put()
-        return
+# def crawlLogger(key, link, level, isFinished, jobID):
+#     if isFinished:
+#         logEntry = key.get()
+#         logEntry.crawlFinished = True
+#         logEntry.put()
+#         return
+#     if key is None:
+#         logEntry = LogEntry(crawlFinished=isFinished, jobID=jobID)
+#         logEntry_key = logEntry.put()
+#         return logEntry_key
+#     else:
+#         logEntry = key.get()
+#         if level in logEntry.record:
+#             logEntry.record[level].append(link)
+#         else:
+#             logEntry.record[level] = [link]
+#         logEntry.put()
+#         return
 
 
 #################################
@@ -228,6 +222,7 @@ def crawl():
     recursionLimit = int(request.form.get('recursionLimit'))
     searchType = request.form.get('searchType')
     jobID = request.form.get('jobID')
+    print "Job ID" + jobID
 
     search_start_time = time.time()
     result = []
@@ -247,26 +242,24 @@ def crawl():
     printElapsedTime(search_start_time)
 
     return json.dumps({'status': 'Ok', 'count': len(result), 'result': formatted_result, 'seconds_elapsed': search_elapsed_time})
-
+ 
 @app.route('/status_update', methods=['POST'])
 def status_update():
     jobID = request.form.get('jobID')
     if not jobID or jobID == '':
-        return {'done': False, 'payload': [None]}
+        return {'done': False, 'result': []}
 
-    job_query = db.GqlQuery("SELECT * FROM logEntry WHERE jobID= :1", jobID)
+    job_query = LogEntry.query(LogEntry.jobID==jobID)
     job_results = []
 
     done = False
     for j in job_query:
         job_results.extend(j.record)
         j.key.delete()
-        if j.isFinished == True:
+        if j.crawlFinished == True:
             done = True
 
-    formatted_results = formatResult(job_results)
-
-    return {'done': done, 'result': formatted_results}
+    return json.dumps({'result': job_results, 'done': done})
 
 @app.errorhandler(404)
 def page_not_found(e):

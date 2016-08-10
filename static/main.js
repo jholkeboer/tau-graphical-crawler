@@ -122,6 +122,49 @@ function getCookie(){
 		return output;
 	}
 
+	function statusChecker(jobID) {
+		$.ajax({
+			url: "/status_update",
+			type: "POST",
+			data: {
+				"jobID": jobID
+			},
+			jobID: jobID,
+			success: function(results) {
+				var res = JSON.parse(results);
+				console.log(res);
+
+				var new_results = res.result;
+				console.log("link count");
+				console.log(new_results.length)
+
+				var partialResults = document.getElementById("partial-results");
+				var urlHTML = '';
+				if (res.done != true) {
+					if (new_results.length > 0) {
+						var urlStrings = new_results.reduce(
+							function(prev, next) {
+								return next["child"] + "<br>" + prev;
+							}
+						)
+						partialResults.innerHTML = urlStrings + partialResults.innerHTML;
+					}
+				}
+
+				if (res.done != true) {
+					var waitToRequest = function(job) {
+						setTimeout(function() {statusChecker(job)}, 3000);
+					}
+					waitToRequest(this.jobID);
+				} 
+
+			},
+			error: function(jqXHR, stats, errThrown) {
+				console.log("Status update error")
+			}
+		});
+	}
+
 	var submitCrawl = function(ps){
 		clearCanvas(ps);
 		var startingURL = document.getElementById("starting-url").value;
@@ -135,6 +178,7 @@ function getCookie(){
 		document.getElementById("starting-url").disabled = true;
 		document.getElementById("recursion-limit").disabled = true;
 		searchElement.disabled = true;
+		setCookie(startingURL, recursionLimit, searchType, keywordSearch);
 
 		var jobID = generateJobID(25);
 
@@ -149,26 +193,27 @@ function getCookie(){
 				"jobID": jobID
 			},
 			success: function(result) {
-				// shown = {nodes:{},edges:{}};
-				// hidden = {nodes:{},edges:{}};
-				// var crawlerResults = JSON.parse(result).result;
-				// rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
-				// 	return crawlerResults.nodes[value].level == 1;
-				// })[0];
-				// keys.push(rootKey);
-				// hidden = JSON.parse(JSON.stringify(crawlerResults));
-				// var ds = addObj(ps,crawlerResults, 3);
-				// shown = ds[0];
-				// hidden = ds[1];
-				// keys = ds[2];
-				// ps = ds[3];
-				// setCookie(startingURL, recursionLimit, searchType, keywordSearch);
-				// crawlButton.disabled = false;
-				// crawlButton.innerHTML = "Crawl!";
-				// document.getElementById("starting-url").disabled = false;
-				// document.getElementById("recursion-limit").disabled = false;
-				// searchElement.disabled = false;	
+				shown = {nodes:{},edges:{}};
+				hidden = {nodes:{},edges:{}};
+				var crawlerResults = JSON.parse(result).result;
+				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+					return crawlerResults.nodes[value].level == 1;
+				})[0];
+				keys.push(rootKey);
+				hidden = JSON.parse(JSON.stringify(crawlerResults));
+				var ds = addObj(ps,crawlerResults, 3);
+				shown = ds[0];
+				hidden = ds[1];
+				keys = ds[2];
+				ps = ds[3];
+				setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+				crawlButton.disabled = false;
+				crawlButton.innerHTML = "Crawl!";
+				document.getElementById("starting-url").disabled = false;
+				document.getElementById("recursion-limit").disabled = false;
+				searchElement.disabled = false;	
 				console.log("Crawling finished for " + jobID);
+				document.getElementById("partial-results").innerHTML = "";
 			},		
 			error: function(jqXHR, stats, errThrown){
 				crawlButton.disabled = false;
@@ -179,46 +224,12 @@ function getCookie(){
 			 }		
 		});
 
-		var done = false;
-		var crawler_results = {}
-		setInterval(checkStatus, 5000);
-		function checkStatus() {
-				$.ajax({
-					url: "/status_update",
-					type: "POST",
-					data: {
-						"jobID": jobID
-					},
-					success: function(result) {
-						$.extend(crawler_results, JSON.parse(result).payload);
+		// var done = false;
+		var crawler_results = {nodes: {}, edges: {}}
+		// setInterval(checkStatus, 5000);
 
-						shown = {nodes:{},edges:{}};
-						hidden = {nodes:{},edges:{}};
-						// var crawlerResults = JSON.parse(result).result;
-						rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
-							return crawlerResults.nodes[value].level == 1;
-						})[0];
-						keys.push(rootKey);
-						hidden = JSON.parse(JSON.stringify(crawlerResults));
-						var ds = addObj(ps,crawlerResults, 3);
-						shown = ds[0];
-						hidden = ds[1];
-						keys = ds[2];
-						ps = ds[3];
-						setCookie(startingURL, recursionLimit, searchType, keywordSearch);
-						crawlButton.disabled = false;
-						crawlButton.innerHTML = "Crawl!";
-						document.getElementById("starting-url").disabled = false;
-						document.getElementById("recursion-limit").disabled = false;
-						searchElement.disabled = false;
-					},
-					error: function(jqXHR, stats, errThrown) {
-						console.log("Status update error")
-					}
-				});
-				return false;
-		}
-		checkStatus(done)
+		statusChecker(jobID);
+
 	}
 
   var Renderer = function(canvas){
