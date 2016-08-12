@@ -171,80 +171,85 @@ function getCookie(){
 		clearCanvas(ps);
 		document.getElementById("error-msg").innerHTML = "";
 		var startingURL = document.getElementById("starting-url").value;
-		var recursionLimit = document.getElementById("recursion-limit").value;
-		var searchElement = document.getElementById("search-type");
-		var searchType = searchElement.options[searchElement.selectedIndex].value;
-		var crawlButton = document.getElementById("submit-crawl");
-		var keywordSearch = document.getElementById("keyword-search").value;
-		crawlButton.disabled = true;
-		crawlButton.innerHTML = "Please wait, loading...";
-		document.getElementById("starting-url").disabled = true;
-		document.getElementById("recursion-limit").disabled = true;
-		searchElement.disabled = true;
-		setCookie(startingURL, recursionLimit, searchType, keywordSearch);
-		document.getElementById("crawl-count").innerHTML = "0";
-		document.getElementById("partial-results").style.display = "block";
-		document.getElementById("viewport").style.display = "none";
-		document.getElementById("show-site").style.display = "none";
+		if (startingURL.startsWith("http://") == false) {
+			document.getElementById("error-msg").innerHTML = "That URL is not valid.";
+		} else {
+			var recursionLimit = document.getElementById("recursion-limit").value;
+			var searchElement = document.getElementById("search-type");
+			var searchType = searchElement.options[searchElement.selectedIndex].value;
+			var crawlButton = document.getElementById("submit-crawl");
+			var keywordSearch = document.getElementById("keyword-search").value;
+			crawlButton.disabled = true;
+			crawlButton.innerHTML = "Please wait, loading...";
+			document.getElementById("starting-url").disabled = true;
+			document.getElementById("recursion-limit").disabled = true;
+			searchElement.disabled = true;
+			setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+			document.getElementById("crawl-count").innerHTML = "0";
+			document.getElementById("partial-results").style.display = "block";
+			document.getElementById("viewport").style.display = "none";
+			document.getElementById("show-site").style.display = "none";
 
 
-		var jobID = generateJobID(25);
+			var jobID = generateJobID(25);
 
-		$.ajax({
-			url: "/start_crawl",
-			type: "POST",
-			data: {
-				"startingURL": startingURL,
-				"recursionLimit": recursionLimit,
-				"searchType": searchType,
-				"keyword": keywordSearch,
-				"jobID": jobID
-			},
-			success: function(result) {
-				var res = JSON.parse(result)
-				if (res.status == "Ok") {
-					console.log(res);
-					document.getElementById("viewport").style.display = "block";
-					document.getElementById("show-site").style.display = "block";
-					shown = {nodes:{},edges:{}};
-					hidden = {nodes:{},edges:{}};
-					var crawlerResults = JSON.parse(result).result;
-					rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
-						return crawlerResults.nodes[value].level == 1;
-					})[0];
-					keys.push(rootKey);
-					hidden = JSON.parse(JSON.stringify(crawlerResults));
-					var ds = addObj(ps,crawlerResults, 3);
-					shown = ds[0];
-					hidden = ds[1];
-					keys = ds[2];
-					ps = ds[3];
-					setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+			$.ajax({
+				url: "/start_crawl",
+				type: "POST",
+				data: {
+					"startingURL": startingURL,
+					"recursionLimit": recursionLimit,
+					"searchType": searchType,
+					"keyword": keywordSearch,
+					"jobID": jobID
+				},
+				success: function(result) {
+					var res = JSON.parse(result)
+					if (res.status == "Ok") {
+						console.log(res);
+						document.getElementById("viewport").style.display = "block";
+						document.getElementById("show-site").style.display = "block";
+						shown = {nodes:{},edges:{}};
+						hidden = {nodes:{},edges:{}};
+						var crawlerResults = JSON.parse(result).result;
+						rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+							return crawlerResults.nodes[value].level == 1;
+						})[0];
+						keys.push(rootKey);
+						hidden = JSON.parse(JSON.stringify(crawlerResults));
+						var ds = addObj(ps,crawlerResults, 3);
+						shown = ds[0];
+						hidden = ds[1];
+						keys = ds[2];
+						ps = ds[3];
+						setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+						crawlButton.disabled = false;
+						crawlButton.innerHTML = "Crawl!";
+						document.getElementById("starting-url").disabled = false;
+						document.getElementById("recursion-limit").disabled = false;
+						searchElement.disabled = false;	
+						console.log("Crawling finished for " + jobID);
+						document.getElementById("url-scrollbox").innerHTML = "";
+						document.getElementById("partial-results").style.display = "none";
+					} else if (res.status == "Deadline Exceeded") {
+						document.getElementById("error-msg").innerHTML = "Error: request timed out.";
+					} else if (res.status == 'error') {
+						document.getElementById("error-msg").innerHTML = "An error occured";
+					}
+
+				},		
+				error: function(jqXHR, stats, errThrown){
 					crawlButton.disabled = false;
 					crawlButton.innerHTML = "Crawl!";
 					document.getElementById("starting-url").disabled = false;
 					document.getElementById("recursion-limit").disabled = false;
-					searchElement.disabled = false;	
-					console.log("Crawling finished for " + jobID);
-					document.getElementById("url-scrollbox").innerHTML = "";
-					document.getElementById("partial-results").style.display = "none";
-				} else if (res.status == "Deadline Exceeded") {
-					document.getElementById("error-msg").innerHTML = "Error: request timed out.";
-				} else if (res.status == 'error') {
-					document.getElementById("error-msg").innerHTML = "An error occured";
-				}
+					searchElement.disabled = false;
+				}		
+			});
 
-			},		
-			error: function(jqXHR, stats, errThrown){
-				crawlButton.disabled = false;
-				crawlButton.innerHTML = "Crawl!";
-				document.getElementById("starting-url").disabled = false;
-				document.getElementById("recursion-limit").disabled = false;
-				searchElement.disabled = false;
-			 }		
-		});
+			statusChecker(jobID);
 
-		statusChecker(jobID);
+		}
 
 	}
 
