@@ -171,7 +171,7 @@ function getCookie(){
 		clearCanvas(ps);
 		document.getElementById("error-msg").innerHTML = "";
 		var startingURL = document.getElementById("starting-url").value;
-		if (startingURL.startsWith("http://") == false) {
+		if (startingURL.startsWith("http://") == false && startingURL.startsWith("https://") == false) {
 			document.getElementById("error-msg").innerHTML = "That URL is not valid.";
 		} else {
 			var recursionLimit = document.getElementById("recursion-limit").value;
