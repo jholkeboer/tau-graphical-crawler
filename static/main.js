@@ -169,6 +169,7 @@ function getCookie(){
 
 	var submitCrawl = function(ps){
 		clearCanvas(ps);
+		document.getElementById("error-msg").innerHTML = "";
 		var startingURL = document.getElementById("starting-url").value;
 		var recursionLimit = document.getElementById("recursion-limit").value;
 		var searchElement = document.getElementById("search-type");
@@ -200,30 +201,39 @@ function getCookie(){
 				"jobID": jobID
 			},
 			success: function(result) {
-				document.getElementById("viewport").style.display = "block";
-				document.getElementById("show-site").style.display = "block";
-				shown = {nodes:{},edges:{}};
-				hidden = {nodes:{},edges:{}};
-				var crawlerResults = JSON.parse(result).result;
-				rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
-					return crawlerResults.nodes[value].level == 1;
-				})[0];
-				keys.push(rootKey);
-				hidden = JSON.parse(JSON.stringify(crawlerResults));
-				var ds = addObj(ps,crawlerResults, 3);
-				shown = ds[0];
-				hidden = ds[1];
-				keys = ds[2];
-				ps = ds[3];
-				setCookie(startingURL, recursionLimit, searchType, keywordSearch);
-				crawlButton.disabled = false;
-				crawlButton.innerHTML = "Crawl!";
-				document.getElementById("starting-url").disabled = false;
-				document.getElementById("recursion-limit").disabled = false;
-				searchElement.disabled = false;	
-				console.log("Crawling finished for " + jobID);
-				document.getElementById("url-scrollbox").innerHTML = "";
-				document.getElementById("partial-results").style.display = "none";
+				var res = JSON.parse(result)
+				if (res.status == "Ok") {
+					console.log(res);
+					document.getElementById("viewport").style.display = "block";
+					document.getElementById("show-site").style.display = "block";
+					shown = {nodes:{},edges:{}};
+					hidden = {nodes:{},edges:{}};
+					var crawlerResults = JSON.parse(result).result;
+					rootKey = Object.keys(crawlerResults.nodes).filter(function(value, index, array){
+						return crawlerResults.nodes[value].level == 1;
+					})[0];
+					keys.push(rootKey);
+					hidden = JSON.parse(JSON.stringify(crawlerResults));
+					var ds = addObj(ps,crawlerResults, 3);
+					shown = ds[0];
+					hidden = ds[1];
+					keys = ds[2];
+					ps = ds[3];
+					setCookie(startingURL, recursionLimit, searchType, keywordSearch);
+					crawlButton.disabled = false;
+					crawlButton.innerHTML = "Crawl!";
+					document.getElementById("starting-url").disabled = false;
+					document.getElementById("recursion-limit").disabled = false;
+					searchElement.disabled = false;	
+					console.log("Crawling finished for " + jobID);
+					document.getElementById("url-scrollbox").innerHTML = "";
+					document.getElementById("partial-results").style.display = "none";
+				} else if (res.status == "Deadline Exceeded") {
+					document.getElementById("error-msg").innerHTML = "Error: request timed out.";
+				} else if (res.status == 'error') {
+					document.getElementById("error-msg").innerHTML = "An error occured";
+				}
+
 			},		
 			error: function(jqXHR, stats, errThrown){
 				crawlButton.disabled = false;

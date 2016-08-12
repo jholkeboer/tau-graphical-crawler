@@ -5,7 +5,7 @@ import time
 from flask import Flask, render_template, request
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
-from google.appengine.ext import db
+from google.appengine.runtime import DeadlineExceededError
 import lxml
 from lxml import html
 from Queue import *
@@ -13,7 +13,8 @@ from models import LogEntry
 app = Flask(__name__)
 
 urlfetch.set_default_fetch_deadline(10)
-RESULT_LIMIT = 10000
+RESULT_LIMIT = 5000
+TIME_LIMIT = 48
 
 #################################
 # Helper Functions
@@ -77,28 +78,30 @@ def formatResult(result):
 # Breadth First Crawl
 #################################
 
-def extendBFSResults(link, queue, bfs_result_array, jobID):
-    lock = threading.Lock()
-    links = None
+def extendBFSResults(link, queue, bfs_result_array, jobID, start_time):
+    elapsed_time = time.time() - start_time
+    if len(bfs_result_array) < RESULT_LIMIT and elapsed_time < TIME_LIMIT:
+        lock = threading.Lock()
+        links = None
 
-    try:
-        links = getPageLinks(link['child'], link['level'])
-    except:
-        pass
+        try:
+            links = getPageLinks(link['child'], link['level'])
+        except:
+            pass
 
-    if links:
-        # put new links in back of the queue
-        for l in links:
-            queue.put((l['level'], l), True, 5)
-        
-        writeCrawlLog(links, False, jobID)
+        if links:
+            # put new links in back of the queue
+            for l in links:
+                queue.put((l['level'], l), True, 5)
+            
+            writeCrawlLog(links, False, jobID)
 
-        # add to results
-        lock.acquire()
-        bfs_result_array.extend(links)
-        lock.release()
+            # add to results
+            lock.acquire()
+            bfs_result_array.extend(links)
+            lock.release()
 
-def breadthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword):
+def breadthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword, start_time):
     start_time = time.time()
     bfs_result_array = []
 
@@ -111,8 +114,18 @@ def breadthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword):
     # logEntryKey = crawlLogger(None, None, None, False)
 
     keywordFound = False
+    elapsed_time = time.time() - start_time
 
-    while not queue.empty() and not keywordFound and len(bfs_result_array) < RESULT_LIMIT:
+    while not queue.empty() and not keywordFound:
+        elapsed_time = time.time() - start_time
+        print elapsed_time
+        print TIME_LIMIT
+        if elapsed_time > TIME_LIMIT:
+            writeCrawlLog([], True, jobID)
+            return bfs_result_array
+        if len(bfs_result_array) > RESULT_LIMIT:
+            writeCrawlLog([], True, jobID)
+            return bfs_result_array
         # get next item in priority queue
         next = queue.get(True, 5)[1]
         current_depth = next['level']
@@ -132,15 +145,15 @@ def breadthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword):
                 if stopKeyword.lower() in next['parent_title'].lower():
                     keywordFound = True
         
-        if current_depth <= recursionLimit and not keywordFound:
+        elapsed_time = time.time() - start_time
+        if current_depth <= recursionLimit and not keywordFound and len(bfs_result_array) < RESULT_LIMIT and elapsed_time < TIME_LIMIT:
             crawler_jobs = []
             for link in this_level:
-                print "BFS Level " + str(current_depth) + " " + link['child']
-                printElapsedTime(start_time)
-
                 # create thread for each link
-                new_thread = threading.Thread(target=extendBFSResults(link, queue, bfs_result_array, jobID))
-                crawler_jobs.append(new_thread)
+                elapsed_time = time.time() - start_time
+                if len(bfs_result_array) < RESULT_LIMIT and elapsed_time < TIME_LIMIT:
+                    new_thread = threading.Thread(target=extendBFSResults(link, queue, bfs_result_array, jobID, start_time))
+                    crawler_jobs.append(new_thread)
 
             # execute threads
             for thread in crawler_jobs:
@@ -155,35 +168,45 @@ def breadthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword):
 # Depth First Crawl
 #################################
 
-def extendDFSResults(link, stack, dfs_result_array, jobID):
-    links = None
-    try:
-        links = getPageLinks(link['child'], link['level'])
-    except:
-        pass
-    if links:
-        stack.extend(links)
-        writeCrawlLog(links, False, jobID)
-        dfs_result_array.extend(links)
+def extendDFSResults(link, stack, dfs_result_array, jobID, start_time):
+    elapsed_time = time.time() - start_time
+    if len(dfs_result_array) < RESULT_LIMIT and elapsed_time < TIME_LIMIT:
+        links = None
+        try:
+            links = getPageLinks(link['child'], link['level'])
+        except:
+            pass
+        if links:
+            stack.extend(links)
+            writeCrawlLog(links, False, jobID)
+            dfs_result_array.extend(links)
 
-def depthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword):
+def depthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword, start_time):
     start_time = time.time()
     dfs_result_array = []
 
     # initialize stack
     stack = [{'parent_title': None, 'parent': None, 'child': startingURL, 'level': 0}]
     keywordFound = False
+    elapsed_time = time.time() - start_time
 
     crawler_jobs = []
-    while len(stack) > 0 and not keywordFound and len(dfs_result_array) < RESULT_LIMIT:
+    while len(stack) > 0 and not keywordFound and len(dfs_result_array) < RESULT_LIMIT and elapsed_time < TIME_LIMIT:
+        elapsed_time = time.time() - start_time
+        if elapsed_time > TIME_LIMIT:
+            writeCrawlLog([], True, jobID)
+            return dfs_result_array
+        if len(dfs_result_array) > RESULT_LIMIT:
+            writeCrawlLog([], True, jobID)
+            return dfs_result_array
         next = stack.pop()
         if stopKeyword and next['parent_title']:
             if stopKeyword.lower() in next['parent_title'].lower():
                 keywordFound = True
         if next['level'] <= recursionLimit and not keywordFound:
-            print "DFS Level " + str(next['level']) + " " + next['child']
-            printElapsedTime(start_time)
-            extendDFSResults(next, stack, dfs_result_array, jobID)
+            elapsed_time = time.time() - start_time
+            if len(dfs_result_array) < RESULT_LIMIT and elapsed_time < TIME_LIMIT:
+                extendDFSResults(next, stack, dfs_result_array, jobID, start_time)
 
     writeCrawlLog([], True, jobID)
     return dfs_result_array
@@ -227,35 +250,40 @@ def index():
 
 @app.route('/start_crawl', methods=['POST'])
 def crawl():
-    start_time = time.time()
-    startingURL= request.form.get('startingURL')
-    recursionLimit = int(request.form.get('recursionLimit'))
-    searchType = request.form.get('searchType')
-    jobID = request.form.get('jobID')
-    stopKeyword = request.form.get('keyword')
-    if stopKeyword.strip() == '':
-        stopKeyword = None
-    print "Job ID" + jobID
+    try:
+        start_time = time.time()
+        startingURL= request.form.get('startingURL')
+        recursionLimit = int(request.form.get('recursionLimit'))
+        searchType = request.form.get('searchType')
+        jobID = request.form.get('jobID')
+        stopKeyword = request.form.get('keyword')
+        if stopKeyword.strip() == '':
+            stopKeyword = None
+        print "Job ID" + jobID
 
-    search_start_time = time.time()
-    result = []
-    if searchType == 'bfs':
-        result = breadthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword)
-    elif searchType == 'dfs':
-        result = depthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword)
-    else:
+        search_start_time = time.time()
         result = []
-    search_elapsed_time = time.time() - search_start_time
+        if searchType == 'bfs':
+            result = breadthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword, start_time)
+        elif searchType == 'dfs':
+            result = depthFirstCrawl(startingURL, recursionLimit, jobID, stopKeyword, start_time)
+        else:
+            result = []
+        search_elapsed_time = time.time() - search_start_time
 
-    # Format results
-    print "Formatting results..."
-    formatted_result = formatResult(result)
+        # Format results
+        print "Formatting results..."
+        formatted_result = formatResult(result)
 
-    print str(len(result)) + " links crawled."
-    printElapsedTime(search_start_time)
+        print str(len(result)) + " links crawled."
+        printElapsedTime(search_start_time)
 
-    return json.dumps({'status': 'Ok', 'count': len(result), 'result': formatted_result, 'seconds_elapsed': search_elapsed_time})
- 
+        return json.dumps({'status': 'Ok', 'count': len(result), 'result': formatted_result, 'seconds_elapsed': search_elapsed_time})
+    
+    except DeadlineExceededError as e:
+        writeCrawlLog([], True, jobID)
+        return json.dumps({'status': 'Deadline Exceeded', 'count': 0, 'result': {}})
+
 @app.route('/status_update', methods=['POST'])
 def status_update():
     jobID = request.form.get('jobID')
